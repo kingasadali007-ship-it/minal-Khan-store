@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-cinzel: 'Cinzel', serif;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #1e293b;
+    background-color: #faf8f5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-display {
+    font-family: var(--font-cinzel);
+  }
+
+  .font-urdu {
+    font-family: var(--font-urdu);
+    line-height: 2.2;
+  }
+
+  [dir="rtl"] {
+    text-align: right;
+  }
+}
+
+/* Custom scrollbar for luxury gift aesthetic */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f1ece4;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b89628;
+}

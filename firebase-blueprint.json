@@ -1,0 +1,170 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Gift store product item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 150 },
+        "nameUrdu": { "type": "string", "maxLength": 150 },
+        "price": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "description": { "type": "string", "maxLength": 2000 },
+        "descriptionUrdu": { "type": "string", "maxLength": 2000 },
+        "category": { "type": "string", "maxLength": 80 },
+        "occasion": { "type": "string", "maxLength": 80 },
+        "stock": { "type": "number" },
+        "sku": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string", "maxLength": 250000 },
+        "isActive": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "price", "category", "stock", "isActive"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Gift category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 80 },
+        "nameUrdu": { "type": "string", "maxLength": 80 },
+        "slug": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 300 },
+        "imageUrl": { "type": "string", "maxLength": 50000 }
+      },
+      "required": ["name", "slug"]
+    },
+    "Occasion": {
+      "title": "Occasion",
+      "description": "Gift occasion section",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 80 },
+        "nameUrdu": { "type": "string", "maxLength": 80 },
+        "slug": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 300 },
+        "badge": { "type": "string", "maxLength": 40 }
+      },
+      "required": ["name", "slug"]
+    },
+    "GiftBox": {
+      "title": "GiftBox",
+      "description": "Base box packaging option for custom gift box builder",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "nameUrdu": { "type": "string", "maxLength": 100 },
+        "price": { "type": "number" },
+        "description": { "type": "string", "maxLength": 500 },
+        "color": { "type": "string", "maxLength": 50 },
+        "dimensions": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string", "maxLength": 100000 },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["name", "price", "isActive"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerEmail": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 30 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 80 },
+        "deliveryInstructions": { "type": "string", "maxLength": 500 },
+        "items": { "type": "string" },
+        "customGiftBoxes": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "deliveryCharges": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "orderStatus": { "type": "string", "maxLength": 40 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["customerName", "customerPhone", "address", "city", "totalAmount", "orderStatus"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global store configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "storeName": { "type": "string", "maxLength": 100 },
+        "tagline": { "type": "string", "maxLength": 150 },
+        "taglineUrdu": { "type": "string", "maxLength": 150 },
+        "defaultLanguage": { "type": "string", "maxLength": 10 },
+        "deliveryCharges": { "type": "number" },
+        "freeDeliveryThreshold": { "type": "number" },
+        "contactEmail": { "type": "string", "maxLength": 100 },
+        "contactPhone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 200 },
+        "announcement": { "type": "string", "maxLength": 300 },
+        "announcementUrdu": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["whatsappNumber"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered customer profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 80 },
+        "role": { "type": "string", "maxLength": 30 },
+        "wishlist": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of store gift products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of gift product categories"
+    },
+    "/occasions/{occasionId}": {
+      "schema": "Occasion",
+      "description": "Collection of celebratory gift occasions"
+    },
+    "/gift_boxes/{giftBoxId}": {
+      "schema": "GiftBox",
+      "description": "Collection of base gift box packaging options"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer gift orders"
+    },
+    "/store_settings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Store settings including WhatsApp number and delivery charges"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Customer profiles and addresses"
+    },
+    "/admins/{adminId}": {
+      "schema": "UserProfile",
+      "description": "Admin users collection"
+    }
+  }
+}

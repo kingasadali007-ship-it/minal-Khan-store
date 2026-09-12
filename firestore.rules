@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() == "kingasadali007@gmail.com") ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Products: Anyone can read, catalog management can create/update/delete
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Categories: Anyone can read, catalog management can create/update/delete
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Occasions: Anyone can read, catalog management can create/update/delete
+    match /occasions/{occasionId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Gift Boxes: Anyone can read, catalog management can create/update/delete
+    match /gift_boxes/{boxId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Store Settings (WhatsApp, delivery charges, announcement): Anyone can read, management can modify
+    match /store_settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Orders: Anyone (including guest/WhatsApp orderers) can create and track orders.
+    // Management can read and update all orders.
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // User profiles & wishlist: Owner can read/write, Admin can read
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Admins list
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}
