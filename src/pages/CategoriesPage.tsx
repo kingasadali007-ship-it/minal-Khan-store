@@ -18,11 +18,10 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
           Curated Departments
         </span>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#1b3022]">
-          {t('navCategories')}
+          Gift Categories
         </h1>
         <p className="text-xs sm:text-sm text-stone-500">
-          Explore exquisite categories from luxury perfumes and artisanal chocolates to custom
-          keepsake hampers.
+          Discover our curated departments including luxury perfumes, watches, leather wallets, artisan chocolates, personalized mugs, fresh flowers, fine jewellery, and signature gift boxes in Pakistan.
         </p>
       </div>
 

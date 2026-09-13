@@ -109,10 +109,10 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           Luxury Catalog
         </span>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#1b3022]">
-          {t('navShop')}
+          Shop Premium Gifts in Pakistan
         </h1>
         <p className="text-xs sm:text-sm text-stone-500">
-          Thoughtfully curated gifts for life’s most cherished celebrations across Pakistan.
+          Discover luxury perfumes, watches, wallets, chocolates, jewellery, personalized gifts, and customized gift boxes across Pakistan.
         </p>
       </div>
 

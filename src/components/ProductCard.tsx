@@ -61,7 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
-            alt={product.name}
+            alt={`MINAL KHAN - ${product.name}${product.category ? ` (${product.category})` : ''}`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />

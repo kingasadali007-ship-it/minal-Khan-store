@@ -1,24 +1,29 @@
-# robots.txt for MINAL KHAN Luxury Gift Store (https://minalkhan.store)
+# robots.txt for MINAL KHAN (https://minalkhan.store)
 User-agent: *
 Allow: /
 Allow: /shop
 Allow: /categories
 Allow: /occasions
 Allow: /gift-box
+Allow: /product/
+Allow: /category/
+Allow: /occasion/
 Allow: /about
 Allow: /contact
 Allow: /privacy
 Allow: /terms
 
-# Protect private customer areas and admin management portal
+# Block private, authenticated, and administrative routes
 Disallow: /admin
 Disallow: /admin/
 Disallow: /account
 Disallow: /account/
 Disallow: /checkout
 Disallow: /checkout/
+Disallow: /orders
+Disallow: /orders/
 Disallow: /auth
 Disallow: /auth/
 
-# Sitemap index
+# XML Sitemap
 Sitemap: https://minalkhan.store/sitemap.xml

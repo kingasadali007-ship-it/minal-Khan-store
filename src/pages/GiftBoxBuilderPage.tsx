@@ -181,12 +181,10 @@ export const GiftBoxBuilderPage: React.FC<GiftBoxBuilderPageProps> = ({
           <span>MINAL KHAN Atelier</span>
         </div>
         <h1 className="font-display text-3xl sm:text-5xl font-bold text-[#1b3022]">
-          {t('heroBuildBtn')}
+          Build Your Own Customized Gift Box
         </h1>
         <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-light">
-          {isUrdu
-            ? 'شاہانہ گفٹ باکس منتخب کریں، اپنی مرضی کے پروڈکٹس شامل کریں، خوبصورت ربن اور ہاتھ سے لکھا کارڈ نوٹ لکھ کر مکمل کریں۔'
-            : 'Select your signature keepsake packaging, handpick items from the catalog, customize luxury ribbon styling, and write your handwritten calligraphy card.'}
+          Design your bespoke gift hamper in Pakistan: select premium keepsake packaging, handpick items from our luxury catalog, customize satin ribbon styling, and write your personalized card message.
         </p>
       </div>
 

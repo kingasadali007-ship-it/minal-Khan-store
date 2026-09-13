@@ -20,7 +20,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
     // 1. Compute Page-Specific SEO Metadata
     let title = 'MINAL KHAN | Premium Gifts & Customized Gift Boxes in Pakistan';
     let description =
-      'MINAL KHAN - Premium Gifts & Customized Gift Boxes in Pakistan. Shop luxury perfumes, watches, leather wallets, chocolates, flowers, jewellery, and personalized gift boxes with instant WhatsApp ordering and nationwide delivery.';
+      'Shop premium gifts in Pakistan at MINAL KHAN. Discover perfumes, watches, wallets, chocolates, jewellery, personalized gifts and customized gift boxes.';
     let canonicalPath = '/';
     let isNoIndex = false;
     let ogType = 'website';

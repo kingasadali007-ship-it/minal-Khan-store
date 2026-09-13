@@ -23,16 +23,33 @@ import { Product, CustomGiftBox } from './types';
 import { Phone, MessageCircle } from 'lucide-react';
 
 function AppContent() {
-  const { storeSettings, cart, cartTotal } = useStore();
+  const { storeSettings, cart, cartTotal, products } = useStore();
 
-  // Initialize view: check URL for /admin vs normal customer storefront
+  const getPathToView = (path: string): string => {
+    const p = path.toLowerCase();
+    if (p === '/admin' || p.startsWith('/admin/')) return 'admin';
+    if (p === '/shop' || p.startsWith('/shop/')) return 'shop';
+    if (p === '/categories' || p.startsWith('/categories/')) return 'categories';
+    if (p === '/occasions' || p.startsWith('/occasions/')) return 'occasions';
+    if (p === '/gift-box' || p === '/build-a-box' || p.startsWith('/gift-box/')) return 'box-builder';
+    if (p === '/about' || p.startsWith('/about/')) return 'about';
+    if (p === '/contact' || p.startsWith('/contact/')) return 'contact';
+    if (p === '/privacy' || p.startsWith('/privacy/')) return 'privacy';
+    if (p === '/terms' || p.startsWith('/terms/')) return 'terms';
+    if (p === '/cart') return 'cart';
+    if (p === '/wishlist') return 'wishlist';
+    if (p === '/account') return 'account';
+    return 'home';
+  };
+
+  // Initialize view: check URL for path vs normal customer storefront
   const [currentView, setCurrentView] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (path === '/admin' || path.startsWith('/admin/') || hash === '#admin') {
-        return 'admin';
-      }
+      if (hash === '#admin') return 'admin';
+      const search = new URLSearchParams(window.location.search);
+      if (search.get('product')) return 'product-detail';
+      return getPathToView(window.location.pathname);
     }
     return 'home';
   });
@@ -52,17 +69,42 @@ function AppContent() {
 
   const cleanWhatsApp = storeSettings.whatsappNumber.replace(/[^0-9]/g, '');
 
+  // Synchronize initial product from URL if ?product=ID is present
+  useEffect(() => {
+    if (typeof window !== 'undefined' && products.length > 0 && !selectedProduct) {
+      const search = new URLSearchParams(window.location.search);
+      const prodId = search.get('product');
+      if (prodId) {
+        const found = products.find((p) => p.id === prodId || p.sku === prodId);
+        if (found) {
+          setSelectedProduct(found);
+          setCurrentView('product-detail');
+        }
+      }
+    }
+  }, [products, selectedProduct]);
+
   // Synchronize browser history / URL with view state
   const navigateToView = (view: string) => {
     if (typeof window !== 'undefined') {
-      if (view === 'admin') {
-        if (window.location.pathname !== '/admin') {
-          window.history.pushState({ view: 'admin' }, '', '/admin');
-        }
-      } else {
-        if (window.location.pathname === '/admin') {
-          window.history.pushState({ view: 'home' }, '', '/');
-        }
+      const viewToPathMap: Record<string, string> = {
+        home: '/',
+        shop: '/shop',
+        categories: '/categories',
+        occasions: '/occasions',
+        'box-builder': '/gift-box',
+        about: '/about',
+        contact: '/contact',
+        privacy: '/privacy',
+        terms: '/terms',
+        cart: '/cart',
+        wishlist: '/wishlist',
+        account: '/account',
+        admin: '/admin',
+      };
+      const targetPath = viewToPathMap[view] || '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ view }, '', targetPath);
       }
     }
     setCurrentView(view);
@@ -71,25 +113,34 @@ function AppContent() {
 
   // Browser back/forward button popstate handler
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (e: PopStateEvent) => {
       if (typeof window !== 'undefined') {
-        const path = window.location.pathname.toLowerCase();
-        const hash = window.location.hash.toLowerCase();
-        if (path === '/admin' || path.startsWith('/admin/') || hash === '#admin') {
-          setCurrentView('admin');
-        } else {
-          setCurrentView((prev) => (prev === 'admin' ? 'home' : prev));
+        const search = new URLSearchParams(window.location.search);
+        const prodId = search.get('product');
+        if (prodId && products.length > 0) {
+          const found = products.find((p) => p.id === prodId || p.sku === prodId);
+          if (found) {
+            setSelectedProduct(found);
+            setCurrentView('product-detail');
+            return;
+          }
         }
+        const mappedView = getPathToView(window.location.pathname);
+        setCurrentView(mappedView);
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [products]);
 
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct(product);
-    navigateToView('product-detail');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ view: 'product-detail', productId: product.id }, '', `/shop?product=${product.id}`);
+    }
+    setCurrentView('product-detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleInstantWhatsAppProduct = (product: Product, quantity = 1) => {
@@ -195,6 +246,7 @@ function AppContent() {
             onBack={() => navigateToView('shop')}
             onInstantWhatsApp={handleInstantWhatsAppProduct}
             setCurrentView={navigateToView}
+            onSelectProduct={handleSelectProduct}
           />
         )}
 

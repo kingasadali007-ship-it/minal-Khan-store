@@ -18,11 +18,10 @@ export const OccasionsPage: React.FC<OccasionsPageProps> = ({ onSelectOccasion }
           Celebrations & Milestones
         </span>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#1b3022]">
-          {t('navOccasions')}
+          Gifts by Occasion
         </h1>
         <p className="text-xs sm:text-sm text-stone-500">
-          From Eid festivities and weddings to intimate birthdays and corporate achievements, find
-          meaningful presents crafted for each occasion.
+          Find the perfect presents for every milestone: birthdays, anniversaries, weddings, Eid, Valentine's Day, and corporate celebrations across Pakistan.
         </p>
       </div>
 

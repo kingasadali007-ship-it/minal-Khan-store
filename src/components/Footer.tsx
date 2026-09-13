@@ -33,7 +33,7 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
               </p>
             </div>
             <p className="text-sm text-stone-300 leading-relaxed">
-              Pakistan's premier destination for thoughtfully curated luxury gifts, bespoke gift hampers, and custom keepsake boxes.
+              MINAL KHAN is a premium online gift store in Pakistan offering luxury perfumes, watches, leather wallets, artisan chocolates, personalized gifts, and bespoke customized gift boxes nationwide.
             </p>
             <div className="pt-2">
               <a

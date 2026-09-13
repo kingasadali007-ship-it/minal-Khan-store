@@ -30,8 +30,8 @@ export const dictionary: Translations = {
   navTerms: { en: 'Terms & Delivery', ur: 'شرائط و ترسیل' },
 
   // Hero
-  heroTitle: { en: 'Create the Perfect Gift', ur: 'مکمل اور دلکش تحفہ تیار کریں' },
-  heroSubtitle: { en: 'Thoughtfully selected gifts for every special moment.', ur: 'ہر خاص لمحے کے لیے نفاست اور محبت سے منتخب کردہ تحائف۔' },
+  heroTitle: { en: 'MINAL KHAN — Premium Gifts & Customized Gift Boxes in Pakistan', ur: 'مینل خان — پاکستان میں پریمیم تحائف اور کسٹمائزڈ گفٹ باکسز' },
+  heroSubtitle: { en: 'MINAL KHAN is a premium online gift store in Pakistan offering thoughtfully curated gifts for birthdays, anniversaries, weddings, Eid, Valentine\'s Day, celebrations and special moments. Shop perfumes, watches, wallets, chocolates, jewellery, personalized gifts and customized gift boxes.', ur: 'مینل خان پاکستان کا ایک پریمیم آن لائن گفٹ اسٹور ہے جہاں سالگرہ، شادی، عید، اور دیگر خاص لمحات کے لیے بہترین تحائف، پرفیومز، گھڑیاں اور کسٹم گفٹ باکسز دستیاب ہیں۔' },
   heroShopBtn: { en: 'Shop Gifts', ur: 'تحائف دیکھیں' },
   heroBuildBtn: { en: 'Build Your Own Gift Box', ur: 'اپنا گفٹ باکس تیار کریں' },
   heroExploreBoxTitle: { en: 'Signature Custom Gift Box', ur: 'خصوصی کسٹم گفٹ باکس' },

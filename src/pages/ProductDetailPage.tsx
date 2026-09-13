@@ -14,12 +14,14 @@ import {
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
 import { useLanguage } from '../context/LanguageContext';
+import { ProductCard } from '../components/ProductCard';
 
 interface ProductDetailPageProps {
   product: Product;
   onBack: () => void;
   onInstantWhatsApp: (product: Product, quantity: number) => void;
   setCurrentView: (view: string) => void;
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
@@ -27,8 +29,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onBack,
   onInstantWhatsApp,
   setCurrentView,
+  onSelectProduct,
 }) => {
-  const { addToCart, isInWishlist, toggleWishlist, storeSettings } = useStore();
+  const { products, addToCart, isInWishlist, toggleWishlist, storeSettings } = useStore();
   const { isUrdu, t } = useLanguage();
 
   const [quantity, setQuantity] = useState(1);
@@ -36,6 +39,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const isOutOfStock = product.stock <= 0;
   const hasDiscount = product.salePrice && product.salePrice < product.price;
   const effectivePrice = product.salePrice ?? product.price;
+
+  const relatedProducts = products
+    .filter(
+      (p) =>
+        p.isActive &&
+        p.id !== product.id &&
+        (p.category === product.category || (product.occasion && p.occasion === product.occasion))
+    )
+    .slice(0, 4);
 
   const handleAddToCart = () => {
     if (!isOutOfStock) {
@@ -65,7 +77,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
-              alt={product.name}
+              alt={`MINAL KHAN - ${product.name}${product.category ? ` (${product.category})` : ''}`}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -240,6 +252,44 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Related Gifts from MINAL KHAN */}
+      {relatedProducts.length > 0 && (
+        <section className="pt-12 border-t border-[#e8dfd3] space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs uppercase tracking-widest text-[#8b7355] font-semibold">
+                You May Also Like
+              </span>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[#1b3022]">
+                Related Gifts from MINAL KHAN
+              </h2>
+            </div>
+            <button
+              onClick={() => setCurrentView('shop')}
+              className="text-xs font-bold text-[#8b7355] hover:text-[#1b3022] transition-colors"
+            >
+              View Full Catalog →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {relatedProducts.map((relProd) => (
+              <ProductCard
+                key={relProd.id}
+                product={relProd}
+                onSelectProduct={(p) => {
+                  if (onSelectProduct) {
+                    onSelectProduct(p);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                onInstantWhatsApp={(p) => onInstantWhatsApp(p, 1)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
