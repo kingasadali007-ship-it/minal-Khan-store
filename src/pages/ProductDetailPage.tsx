@@ -115,7 +115,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             <h1 className="font-display text-2xl sm:text-4xl font-bold text-[#1b3022]">
-              {isUrdu && product.nameUrdu ? product.nameUrdu : product.name}
+              {product.name}
             </h1>
 
             {product.sku && (
@@ -144,7 +144,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               Description & Craftsmanship
             </h3>
             <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-line">
-              {isUrdu && product.descriptionUrdu ? product.descriptionUrdu : product.description}
+              {product.description}
             </p>
           </div>
 

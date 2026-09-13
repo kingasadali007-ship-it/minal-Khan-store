@@ -240,7 +240,7 @@ export const GiftBoxBuilderPage: React.FC<GiftBoxBuilderPageProps> = ({
                         <div className="space-y-1 flex-1">
                           <div className="flex items-start justify-between">
                             <h3 className="font-bold text-xs sm:text-sm text-stone-900 leading-snug">
-                              {isUrdu && box.nameUrdu ? box.nameUrdu : box.name}
+                              {box.name}
                             </h3>
                             {isSelected && (
                               <CheckCircle2 className="w-4 h-4 text-[#1b3022] fill-[#d4af37] shrink-0 ml-1" />

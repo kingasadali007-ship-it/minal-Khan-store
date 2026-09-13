@@ -213,7 +213,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                       : 'text-stone-600 hover:bg-[#faf8f5]'
                   }`}
                 >
-                  {isUrdu && cat.nameUrdu ? cat.nameUrdu : cat.name}
+                  {cat.name}
                 </button>
               ))}
             </div>
@@ -245,7 +245,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                       : 'text-stone-600 hover:bg-[#faf8f5]'
                   }`}
                 >
-                  {isUrdu && occ.nameUrdu ? occ.nameUrdu : occ.name}
+                  {occ.name}
                 </button>
               ))}
             </div>

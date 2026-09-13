@@ -123,8 +123,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {/* Product Name */}
-          <h3 className="font-medium text-stone-900 text-base line-clamp-1 group-hover:text-[#1b3022] transition-colors">
-            {isUrdu && product.nameUrdu ? product.nameUrdu : product.name}
+          <h3 className="font-semibold text-stone-900 text-sm sm:text-base line-clamp-1 group-hover:text-[#1b3022] transition-colors">
+            {product.name}
           </h3>
 
           {/* Low Stock Warning */}
@@ -136,7 +136,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Description snippet */}
           <p className="text-xs text-stone-500 line-clamp-2 mt-1.5 leading-relaxed">
-            {isUrdu && product.descriptionUrdu ? product.descriptionUrdu : product.description}
+            {product.description}
           </p>
         </div>
 

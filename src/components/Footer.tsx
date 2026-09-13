@@ -28,14 +28,12 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
               <span className="font-display text-2xl tracking-[0.2em] font-extrabold text-[#f7e7ce]">
                 {storeSettings.storeName || 'MINAL KHAN'}
               </span>
-              <p className="text-xs uppercase tracking-widest text-[#d4af37] font-medium mt-1">
-                {isUrdu && storeSettings.taglineUrdu ? storeSettings.taglineUrdu : storeSettings.tagline}
+              <p className="text-xs uppercase tracking-widest text-[#d4af37] font-semibold mt-1">
+                {storeSettings.tagline || 'PREMIUM GIFTS & CUSTOMIZED GIFT BOXES'}
               </p>
             </div>
             <p className="text-sm text-stone-300 leading-relaxed">
-              {isUrdu
-                ? 'پورے پاکستان میں پریمیم اور پرتعیش تحائف، پرفیومز، گھڑیاں، اور کسٹم گفٹ باکسز کا سب سے معتبر ادارہ۔'
-                : "Pakistan's premier destination for thoughtfully curated luxury gifts, bespoke gift hampers, and custom keepsake boxes."}
+              Pakistan's premier destination for thoughtfully curated luxury gifts, bespoke gift hampers, and custom keepsake boxes.
             </p>
             <div className="pt-2">
               <a

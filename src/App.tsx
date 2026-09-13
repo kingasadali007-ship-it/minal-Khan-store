@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { StoreProvider, useStore } from './context/StoreContext';
@@ -24,7 +24,18 @@ import { Phone, MessageCircle } from 'lucide-react';
 function AppContent() {
   const { storeSettings, cart, cartTotal } = useStore();
 
-  const [currentView, setCurrentView] = useState<string>('home');
+  // Initialize view: check URL for /admin vs normal customer storefront
+  const [currentView, setCurrentView] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/admin' || path.startsWith('/admin/') || hash === '#admin') {
+        return 'admin';
+      }
+    }
+    return 'home';
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [occasionFilter, setOccasionFilter] = useState<string>('All');
@@ -40,10 +51,44 @@ function AppContent() {
 
   const cleanWhatsApp = storeSettings.whatsappNumber.replace(/[^0-9]/g, '');
 
+  // Synchronize browser history / URL with view state
+  const navigateToView = (view: string) => {
+    if (typeof window !== 'undefined') {
+      if (view === 'admin') {
+        if (window.location.pathname !== '/admin') {
+          window.history.pushState({ view: 'admin' }, '', '/admin');
+        }
+      } else {
+        if (window.location.pathname === '/admin') {
+          window.history.pushState({ view: 'home' }, '', '/');
+        }
+      }
+    }
+    setCurrentView(view);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Browser back/forward button popstate handler
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+        if (path === '/admin' || path.startsWith('/admin/') || hash === '#admin') {
+          setCurrentView('admin');
+        } else {
+          setCurrentView((prev) => (prev === 'admin' ? 'home' : prev));
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct(product);
-    setCurrentView('product-detail');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('product-detail');
   };
 
   const handleInstantWhatsAppProduct = (product: Product, quantity = 1) => {
@@ -70,36 +115,34 @@ function AppContent() {
   const handleSelectCategoryFilter = (catName: string) => {
     setCategoryFilter(catName);
     setOccasionFilter('All');
-    setCurrentView('shop');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('shop');
   };
 
   const handleSelectOccasionFilter = (occName: string) => {
     setOccasionFilter(occName);
     setCategoryFilter('All');
-    setCurrentView('shop');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('shop');
   };
 
   // If Admin view is active, render full-screen Admin Dashboard
   if (currentView === 'admin') {
-    return <AdminDashboard onExitAdmin={() => setCurrentView('home')} />;
+    return <AdminDashboard onExitAdmin={() => navigateToView('home')} />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf8f5] text-stone-900 font-sans selection:bg-[#d4af37] selection:text-[#1b3022]">
+    <div className="min-h-screen flex flex-col bg-[#faf8f5] text-stone-900 font-sans selection:bg-[#d4af37] selection:text-[#1b3022] overflow-x-hidden w-full max-w-full">
       {/* Global Navigation */}
       <Navbar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={navigateToView}
         onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       {/* Main App Body */}
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">
         {currentView === 'home' && (
           <HomePage
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
             onSelectProduct={handleSelectProduct}
             onInstantWhatsApp={(p) => handleInstantWhatsAppProduct(p, 1)}
             onSelectCategoryFilter={handleSelectCategoryFilter}
@@ -109,7 +152,7 @@ function AppContent() {
 
         {currentView === 'shop' && (
           <ShopPage
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
             onSelectProduct={handleSelectProduct}
             onInstantWhatsApp={(p) => handleInstantWhatsAppProduct(p, 1)}
             initialCategoryFilter={categoryFilter}
@@ -127,7 +170,7 @@ function AppContent() {
 
         {currentView === 'box-builder' && (
           <GiftBoxBuilderPage
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
             onOpenWhatsAppBoxOrder={handleInstantWhatsAppBox}
           />
         )}
@@ -135,33 +178,33 @@ function AppContent() {
         {currentView === 'product-detail' && selectedProduct && (
           <ProductDetailPage
             product={selectedProduct}
-            onBack={() => setCurrentView('shop')}
+            onBack={() => navigateToView('shop')}
             onInstantWhatsApp={handleInstantWhatsAppProduct}
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
           />
         )}
 
         {currentView === 'cart' && (
           <CartPage
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
             onOpenWhatsAppCartOrder={handleOpenCartWhatsApp}
           />
         )}
 
         {currentView === 'wishlist' && (
           <WishlistPage
-            setCurrentView={setCurrentView}
+            setCurrentView={navigateToView}
             onSelectProduct={handleSelectProduct}
             onInstantWhatsApp={(p) => handleInstantWhatsAppProduct(p, 1)}
           />
         )}
 
         {currentView === 'account' && (
-          <AccountPage setCurrentView={setCurrentView} />
+          <AccountPage setCurrentView={navigateToView} />
         )}
 
         {currentView === 'auth' && (
-          <AuthPage setCurrentView={setCurrentView} />
+          <AuthPage setCurrentView={navigateToView} />
         )}
 
         {currentView === 'about' && <AboutUsPage />}
@@ -171,7 +214,7 @@ function AppContent() {
       </main>
 
       {/* Global Footer */}
-      <Footer setCurrentView={setCurrentView} />
+      <Footer setCurrentView={navigateToView} />
 
       {/* Floating WhatsApp Concierge Button */}
       <a

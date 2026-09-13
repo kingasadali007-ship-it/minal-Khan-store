@@ -44,7 +44,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-stone-900 group-hover:text-[#1b3022] transition-colors">
-                    {isUrdu && cat.nameUrdu ? cat.nameUrdu : cat.name}
+                    {cat.name}
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
                     {cat.description || 'Premium gift selection for discerning recipients.'}

@@ -173,31 +173,27 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('minal_khan_lang');
-    return saved === 'ur' ? 'ur' : 'en';
-  });
+  // Storefront is strictly English-only as per production requirements
+  const [language, setLanguageState] = useState<Language>('en');
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem('minal_khan_lang', lang);
+    // Retain API surface for backward compatibility, enforcing English storefront
+    setLanguageState('en');
+    localStorage.setItem('minal_khan_lang', 'en');
   };
 
-  const isUrdu = language === 'ur';
+  const isUrdu = false;
 
   useEffect(() => {
-    document.documentElement.lang = isUrdu ? 'ur' : 'en';
-    document.documentElement.dir = isUrdu ? 'rtl' : 'ltr';
-    if (isUrdu) {
-      document.body.classList.add('font-urdu');
-    } else {
-      document.body.classList.remove('font-urdu');
-    }
-  }, [isUrdu]);
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+    document.body.classList.remove('font-urdu');
+    localStorage.setItem('minal_khan_lang', 'en');
+  }, []);
 
   const t = (key: string, replacements?: Record<string, string | number>): string => {
     const entry = dictionary[key];
-    let text = entry ? (isUrdu ? entry.ur || entry.en : entry.en) : key;
+    let text = entry ? entry.en : key;
 
     if (replacements) {
       Object.entries(replacements).forEach(([k, v]) => {

@@ -6,8 +6,6 @@ import {
   User as UserIcon,
   Menu,
   X,
-  ShieldCheck,
-  Globe,
   Search,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -21,14 +19,10 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onOpenSearch }) => {
-  const { language, setLanguage, isUrdu, t } = useLanguage();
+  const { t } = useLanguage();
   const { cartItemsCount, wishlist, storeSettings } = useStore();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'ur' : 'en');
-  };
 
   const navItems = [
     { id: 'home', label: t('navHome') },
@@ -47,32 +41,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#faf8f5]/95 backdrop-blur-md border-b border-[#e8dfd3] transition-all">
+    <header className="sticky top-0 z-50 bg-[#faf8f5]/98 backdrop-blur-md border-b border-[#e8dfd3] transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
       {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Mobile Menu Trigger */}
-          <div className="flex items-center lg:hidden">
+      <div className="max-w-7xl mx-auto px-2.5 xs:px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 sm:gap-4">
+          {/* Mobile Menu Trigger (Left on mobile, hidden on desktop) */}
+          <div className="flex items-center lg:hidden shrink-0">
             <button
               type="button"
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-stone-700 hover:text-[#1b3022] focus:outline-none"
+              className="p-2 text-[#1b3022] hover:bg-[#f1ece4] rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center focus:outline-none"
               aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
           </div>
 
-          {/* Brand Logo & Tagline */}
-          <div className="flex flex-col items-center sm:items-start cursor-pointer" onClick={() => handleNav('home')}>
-            <div className="flex items-center gap-2">
-              <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-[0.2em] text-[#1b3022]">
-                {storeSettings.storeName || 'MINAL KHAN'}
-              </span>
-            </div>
-            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[#8b7355] font-semibold">
-              {isUrdu && storeSettings.taglineUrdu ? storeSettings.taglineUrdu : storeSettings.tagline}
+          {/* Brand Logo & Tagline (Centered on mobile, left on desktop) */}
+          <div
+            className="flex-1 min-w-0 px-1 sm:px-2 flex flex-col items-center justify-center text-center cursor-pointer lg:flex-initial lg:items-start lg:text-left lg:px-0 select-none"
+            onClick={() => handleNav('home')}
+            id="nav-brand-logo"
+          >
+            <span className="font-display font-extrabold tracking-[0.14em] xs:tracking-[0.18em] sm:tracking-[0.22em] text-[#1b3022] whitespace-nowrap text-base xs:text-lg sm:text-2xl md:text-3xl leading-none transition-all drop-shadow-xs">
+              {storeSettings.storeName || 'MINAL KHAN'}
+            </span>
+            <span className="text-[7.5px] xs:text-[8.5px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.1em] xs:tracking-[0.16em] sm:tracking-[0.22em] md:tracking-[0.26em] text-[#8b7355] font-bold whitespace-nowrap overflow-hidden text-ellipsis block max-w-full leading-tight mt-1">
+              {storeSettings.tagline || 'PREMIUM GIFTS & CUSTOMIZED GIFT BOXES'}
             </span>
           </div>
 
@@ -83,11 +79,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
                 key={item.id}
                 id={`nav-link-${item.id}`}
                 onClick={() => handleNav(item.id)}
-                className={`px-3 py-2 rounded-md text-sm font-medium tracking-wide transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all ${
                   item.highlight
-                    ? 'bg-[#1b3022] text-[#f7e7ce] hover:bg-[#25422f] shadow-sm flex items-center gap-1.5'
+                    ? 'bg-[#1b3022] text-[#f7e7ce] hover:bg-[#25422f] shadow-xs flex items-center gap-1.5 border border-[#d4af37]/40'
                     : currentView === item.id
-                    ? 'text-[#1b3022] font-semibold border-b-2 border-[#d4af37]'
+                    ? 'text-[#1b3022] font-bold border-b-2 border-[#d4af37] bg-[#f1ece4]/60'
                     : 'text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4]'
                 }`}
               >
@@ -97,30 +93,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
             ))}
           </nav>
 
-          {/* Action Icons (Search, Wishlist, Cart, Account, Admin) */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language Switcher */}
-            <button
-              id="language-toggle-btn"
-              onClick={toggleLanguage}
-              className="p-2 text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors flex items-center gap-1 text-xs font-semibold"
-              title={language === 'en' ? 'اردو (Urdu)' : 'English'}
-              aria-label="Toggle language"
-            >
-              <Globe className="w-4 h-4 text-[#8b7355]" />
-              <span className="hidden sm:inline font-sans">{language === 'en' ? 'اردو' : 'EN'}</span>
-            </button>
-
+          {/* Action Icons (Search, Wishlist, Cart, Account) */}
+          <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-2 shrink-0">
             {/* Search trigger */}
             {onOpenSearch && (
               <button
                 id="search-open-btn"
                 onClick={onOpenSearch}
-                className="p-2 text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors"
+                className="p-2 text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors min-w-[36px] min-h-[36px] xs:min-w-[40px] xs:min-h-[40px] flex items-center justify-center"
                 title="Search Gifts"
                 aria-label="Search Gifts"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -128,13 +112,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
             <button
               id="nav-wishlist-btn"
               onClick={() => handleNav('wishlist')}
-              className="relative p-2 text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors"
+              className="relative p-2 text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors min-w-[36px] min-h-[36px] xs:min-w-[40px] xs:min-h-[40px] flex items-center justify-center"
               title="Wishlist"
               aria-label="View Wishlist"
             >
-              <Heart className={`w-5 h-5 ${wishlist.length > 0 ? 'text-rose-600 fill-rose-600' : ''}`} />
+              <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${wishlist.length > 0 ? 'text-rose-600 fill-rose-600' : ''}`} />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-0.5 right-0.5 bg-rose-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-xs">
                   {wishlist.length}
                 </span>
               )}
@@ -144,13 +128,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
             <button
               id="nav-cart-btn"
               onClick={() => handleNav('cart')}
-              className="relative p-2 text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors"
+              className="relative p-2 text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors min-w-[36px] min-h-[36px] xs:min-w-[40px] xs:min-h-[40px] flex items-center justify-center"
               title="Gift Cart"
               aria-label="View Gift Cart"
             >
-              <ShoppingBag className="w-5 h-5 text-[#1b3022]" />
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#1b3022]" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#d4af37] text-[#1b3022] font-bold text-[10px] rounded-full w-4 h-4 flex items-center justify-center shadow-xs">
+                <span className="absolute top-0.5 right-0.5 bg-[#d4af37] text-[#1b3022] font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center shadow-sm border border-[#1b3022]/10">
                   {cartItemsCount}
                 </span>
               )}
@@ -160,27 +144,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
             <button
               id="nav-account-btn"
               onClick={() => handleNav(user ? 'account' : 'auth')}
-              className="p-2 text-stone-700 hover:text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors"
+              className="p-2 text-[#1b3022] hover:bg-[#f1ece4] rounded-full transition-colors min-w-[36px] min-h-[36px] xs:min-w-[40px] xs:min-h-[40px] flex items-center justify-center"
               title={user ? user.displayName || 'Customer Account' : 'Sign In'}
               aria-label="Customer Account"
             >
-              <UserIcon className="w-5 h-5" />
-            </button>
-
-            {/* Admin Badge/Access */}
-            <button
-              id="nav-admin-btn"
-              onClick={() => handleNav('admin')}
-              className={`p-2 rounded-full transition-colors flex items-center gap-1 text-xs font-semibold ${
-                isAdmin
-                  ? 'bg-[#d4af37]/20 text-[#8b7355] hover:bg-[#d4af37]/30 border border-[#d4af37]'
-                  : 'text-stone-400 hover:text-stone-700 hover:bg-[#f1ece4]'
-              }`}
-              title="Admin Dashboard"
-              aria-label="Admin Dashboard"
-            >
-              <ShieldCheck className="w-4 h-4 text-[#8b7355]" />
-              <span className="hidden md:inline">{t('navAdmin')}</span>
+              <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -188,38 +156,35 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, onO
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#faf8f5] border-b border-[#e8dfd3] px-4 pt-3 pb-6 space-y-2 shadow-lg animate-in slide-in-from-top-2">
+        <div className="lg:hidden bg-[#faf8f5] border-b border-[#e8dfd3] px-4 pt-3 pb-6 space-y-2 shadow-xl animate-in slide-in-from-top-2">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNav(item.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg text-base font-medium flex items-center justify-between ${
+              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold flex items-center justify-between transition-colors ${
                 item.highlight
-                  ? 'bg-[#1b3022] text-[#f7e7ce]'
+                  ? 'bg-[#1b3022] text-[#f7e7ce] shadow-xs'
                   : currentView === item.id
-                  ? 'bg-[#f1ece4] text-[#1b3022] font-semibold'
+                  ? 'bg-[#f1ece4] text-[#1b3022] font-bold border-l-4 border-[#d4af37]'
                   : 'text-stone-700 hover:bg-[#f1ece4]'
               }`}
             >
               <span>{item.label}</span>
-              {item.highlight && <Gift className="w-5 h-5 text-[#d4af37]" />}
+              {item.highlight && <Gift className="w-4 h-4 text-[#d4af37]" />}
             </button>
           ))}
 
-          <div className="pt-3 border-t border-[#e8dfd3] flex items-center justify-between">
+          <div className="pt-4 mt-2 border-t border-[#e8dfd3] flex items-center justify-between">
             <button
               onClick={() => handleNav(user ? 'account' : 'auth')}
-              className="flex items-center gap-2 text-stone-700 font-medium py-2"
+              className="flex items-center gap-2.5 text-stone-800 font-semibold py-2 px-3 hover:bg-[#f1ece4] rounded-lg transition-colors text-xs"
             >
-              <UserIcon className="w-5 h-5" />
+              <UserIcon className="w-4 h-4 text-[#1b3022]" />
               <span>{user ? user.displayName || user.email : t('btnSignIn')}</span>
             </button>
-            <button
-              onClick={toggleLanguage}
-              className="px-3 py-1.5 bg-[#f1ece4] text-stone-800 rounded-md text-xs font-bold"
-            >
-              {language === 'en' ? 'اردو' : 'English'}
-            </button>
+            <span className="text-[11px] font-bold text-[#8b7355] uppercase tracking-wider">
+              Pakistan (PKR)
+            </span>
           </div>
         </div>
       )}

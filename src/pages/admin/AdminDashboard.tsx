@@ -24,6 +24,7 @@ import {
   ChevronRight,
   RefreshCw,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
@@ -109,63 +110,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   }, [storeSettings]);
 
   // Handle Passkey Authorization Form
+  const [passkeyError, setPasskeyError] = useState('');
   const handleAuthorize = (e: React.FormEvent) => {
     e.preventDefault();
+    setPasskeyError('');
     if (passkeyInput.trim()) {
-      setAdminSessionKey(passkeyInput.trim());
+      const ok = setAdminSessionKey(passkeyInput.trim());
+      if (!ok) {
+        setPasskeyError('Invalid Admin Passkey. Please verify and try again.');
+      }
     }
   };
 
   // If user is not authorized admin
   if (!isAdmin) {
     return (
-      <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-[#e8dfd3] shadow-xl text-center space-y-5">
-        <div className="w-14 h-14 rounded-full bg-[#d4af37]/20 text-[#8b7355] flex items-center justify-center mx-auto">
-          <Settings className="w-7 h-7" />
-        </div>
-        <h2 className="font-display text-2xl font-bold text-[#1b3022]">Admin Security Gate</h2>
-        <p className="text-xs text-stone-500">
-          Enter your Admin Passkey or sign in with your verified Admin Google account to manage MINAL KHAN store products, orders, inventory, and WhatsApp settings.
-        </p>
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md bg-white rounded-3xl border border-[#e8dfd3] shadow-2xl p-6 sm:p-8 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-[#1b3022] text-[#d4af37] flex items-center justify-center mx-auto shadow-md border border-[#d4af37]/40">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
 
-        <form onSubmit={handleAuthorize} className="space-y-3">
-          <input
-            type="password"
-            required
-            value={passkeyInput}
-            onChange={(e) => setPasskeyInput(e.target.value)}
-            placeholder="Enter Admin Passkey (minalkhan786)"
-            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-[#1b3022] outline-none"
-          />
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-bold text-[#8b7355] uppercase tracking-widest">
+              MINAL KHAN • Security
+            </span>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#1b3022]">
+              Admin Security Gate
+            </h2>
+            <p className="text-xs text-stone-500 max-w-xs mx-auto leading-relaxed">
+              Protected management portal. Authorized administrators only.
+            </p>
+          </div>
+
+          {passkeyError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
+              {passkeyError}
+            </div>
+          )}
+
+          <form onSubmit={handleAuthorize} className="space-y-3 text-left">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1">
+                Admin Master Passkey
+              </label>
+              <input
+                type="password"
+                required
+                value={passkeyInput}
+                onChange={(e) => {
+                  setPasskeyInput(e.target.value);
+                  setPasskeyError('');
+                }}
+                placeholder="Enter Passkey"
+                className="w-full px-4 py-3 border border-stone-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-[#1b3022] outline-none bg-stone-50 focus:bg-white transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3 bg-[#1b3022] text-[#f7e7ce] rounded-xl text-xs font-bold hover:bg-[#25422f] transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
+              <span>Unlock Admin Console</span>
+            </button>
+          </form>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-stone-200"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-stone-400 uppercase tracking-widest font-semibold">
+              or Admin Login
+            </span>
+            <div className="flex-grow border-t border-stone-200"></div>
+          </div>
+
           <button
-            type="submit"
-            className="w-full py-2.5 bg-[#1b3022] text-white rounded-xl text-xs font-bold hover:bg-[#25422f] transition-colors"
+            onClick={() => signInWithGoogle()}
+            className="w-full py-3 bg-stone-50 border border-stone-300 text-stone-800 rounded-xl text-xs font-bold hover:bg-stone-100 flex items-center justify-center gap-2 transition-colors shadow-2xs"
           >
-            Access with Passkey
+            <Sparkles className="w-4 h-4 text-[#d4af37]" />
+            <span>Sign in with Google Admin</span>
           </button>
-        </form>
 
-        <div className="relative flex py-2 items-center">
-          <div className="flex-grow border-t border-stone-200"></div>
-          <span className="flex-shrink mx-4 text-[10px] text-stone-400 uppercase tracking-widest">or Google Login</span>
-          <div className="flex-grow border-t border-stone-200"></div>
-        </div>
-
-        <button
-          onClick={() => signInWithGoogle()}
-          className="w-full py-2.5 bg-stone-50 border border-stone-300 text-stone-700 rounded-xl text-xs font-bold hover:bg-stone-100 flex items-center justify-center gap-2 transition-colors"
-        >
-          <Sparkles className="w-4 h-4 text-[#d4af37]" />
-          Sign in as kingasadali007@gmail.com
-        </button>
-
-        <div className="pt-2 border-t border-stone-100">
-          <button
-            onClick={onExitAdmin}
-            className="text-xs text-stone-500 hover:text-stone-800 transition-colors"
-          >
-            ← Return to Customer Store
-          </button>
+          <div className="pt-3 border-t border-stone-100">
+            <button
+              onClick={onExitAdmin}
+              className="text-xs text-stone-500 hover:text-[#1b3022] font-semibold transition-colors flex items-center justify-center gap-1 mx-auto"
+            >
+              <span>← Return to Customer Store</span>
+            </button>
+          </div>
         </div>
       </div>
     );

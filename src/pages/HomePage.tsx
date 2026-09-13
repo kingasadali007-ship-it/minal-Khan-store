@@ -245,7 +245,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-stone-800 group-hover:text-[#1b3022] transition-colors">
-                  {isUrdu && cat.nameUrdu ? cat.nameUrdu : cat.name}
+                  {cat.name}
                 </h3>
               </div>
             </div>
@@ -283,7 +283,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div>
                 <span className="text-xs font-medium text-[#8b7355]">{occ.badge || '✨ Occasion'}</span>
                 <h3 className="font-display text-base font-bold text-stone-900 group-hover:text-[#1b3022] mt-1">
-                  {isUrdu && occ.nameUrdu ? occ.nameUrdu : occ.name}
+                  {occ.name}
                 </h3>
               </div>
               <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-[#d4af37] group-hover:translate-x-1 transition-transform">

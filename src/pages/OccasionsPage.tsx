@@ -43,7 +43,7 @@ export const OccasionsPage: React.FC<OccasionsPageProps> = ({ onSelectOccasion }
                   {occ.badge || '✨ Celebration'}
                 </span>
                 <h3 className="font-display text-xl font-bold text-stone-900 group-hover:text-[#1b3022] transition-colors">
-                  {isUrdu && occ.nameUrdu ? occ.nameUrdu : occ.name}
+                  {occ.name}
                 </h3>
                 <p className="text-xs text-stone-500 leading-relaxed">
                   {occ.description || 'Thoughtful gift pairings designed to delight.'}
