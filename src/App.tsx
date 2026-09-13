@@ -18,6 +18,7 @@ import { AboutUsPage, ContactPage, PrivacyPolicyPage, TermsDeliveryPage } from '
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { OrderWhatsAppModal } from './components/OrderWhatsAppModal';
 import { SearchModal } from './components/SearchModal';
+import { SEOHead } from './components/SEOHead';
 import { Product, CustomGiftBox } from './types';
 import { Phone, MessageCircle } from 'lucide-react';
 
@@ -124,13 +125,26 @@ function AppContent() {
     navigateToView('shop');
   };
 
-  // If Admin view is active, render full-screen Admin Dashboard
+  // If Admin view is active, render full-screen Admin Dashboard with noindex SEO protection
   if (currentView === 'admin') {
-    return <AdminDashboard onExitAdmin={() => navigateToView('home')} />;
+    return (
+      <>
+        <SEOHead currentView="admin" />
+        <AdminDashboard onExitAdmin={() => navigateToView('home')} />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#faf8f5] text-stone-900 font-sans selection:bg-[#d4af37] selection:text-[#1b3022] overflow-x-hidden w-full max-w-full">
+      {/* Dynamic SEO, Canonical & Structured Data */}
+      <SEOHead
+        currentView={currentView}
+        selectedProduct={selectedProduct}
+        categoryFilter={categoryFilter}
+        occasionFilter={occasionFilter}
+      />
+
       {/* Global Navigation */}
       <Navbar
         currentView={currentView}
