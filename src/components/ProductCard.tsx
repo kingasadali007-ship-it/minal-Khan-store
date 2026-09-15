@@ -75,12 +75,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
           {hasDiscount && (
-            <span className="bg-rose-700 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+            <span className="bg-[#c96f86] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
               SALE
             </span>
           )}
           {product.isFeatured && (
-            <span className="bg-[#1b3022] text-[#f7e7ce] text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+            <span className="bg-[#4a1525] text-[#fce7eb] text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 border border-[#d4af37]/40">
               <Sparkles className="w-3 h-3 text-[#d4af37]" />
               Signature
             </span>
@@ -91,11 +91,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <button
           onClick={handleWishlist}
           id={`wishlist-btn-${product.id}`}
-          className="absolute top-2.5 right-2.5 p-2 rounded-full bg-white/90 backdrop-blur-xs text-stone-600 hover:text-rose-600 shadow-xs transition-colors z-10"
+          className="absolute top-2.5 right-2.5 p-2 rounded-full bg-white/95 backdrop-blur-xs text-stone-600 hover:text-[#c96f86] shadow-xs transition-colors z-10"
           title="Save to Wishlist"
           aria-label="Save to Wishlist"
         >
-          <Heart className={`w-4 h-4 ${isFavorited ? 'text-rose-600 fill-rose-600' : ''}`} />
+          <Heart className={`w-4 h-4 ${isFavorited ? 'text-[#c96f86] fill-[#c96f86]' : ''}`} />
         </button>
 
         {/* Out of Stock Overlay */}
@@ -112,7 +112,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
           {/* Category & Occasion */}
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#8b7355] uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#b0576e] uppercase tracking-wider mb-1">
             <span>{product.category}</span>
             {product.occasion && (
               <>
@@ -123,7 +123,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {/* Product Name */}
-          <h3 className="font-semibold text-stone-900 text-sm sm:text-base line-clamp-1 group-hover:text-[#1b3022] transition-colors">
+          <h3 className="font-semibold text-stone-900 text-sm sm:text-base line-clamp-1 group-hover:text-[#4a1525] transition-colors">
             {product.name}
           </h3>
 
@@ -141,9 +141,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Pricing & CTA */}
-        <div className="mt-4 pt-3 border-t border-[#f1ece4]">
+        <div className="mt-4 pt-3 border-t border-[#f4d5dc]/60">
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-base sm:text-lg font-bold text-[#1b3022]">
+            <span className="text-base sm:text-lg font-bold text-[#4a1525]">
               Rs. {(product.salePrice ?? product.price).toLocaleString()}
             </span>
             {hasDiscount && (
@@ -158,24 +158,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onClick={handleAddToCart}
               disabled={isOutOfStock}
               id={`add-to-cart-${product.id}`}
-              className={`w-full py-2 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+              className={`w-full py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                 isOutOfStock
                   ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
-                  : 'bg-[#1b3022] hover:bg-[#25422f] text-white shadow-xs'
+                  : 'bg-gradient-to-r from-[#4a1525] to-[#5c1d30] hover:from-[#360f1b] hover:to-[#4a1525] text-[#fce7eb] shadow-xs'
               }`}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{isOutOfStock ? t('statusOutOfStock') : t('btnAddToCart')}</span>
+              <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
             </button>
 
             <button
-              onClick={handleQuickWhatsApp}
-              id={`quick-whatsapp-${product.id}`}
-              className="w-full py-2 px-2 rounded-lg text-xs font-bold bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366] hover:text-white border border-[#25D366]/30 transition-all flex items-center justify-center gap-1"
-              title="Order this product directly on WhatsApp"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSelectProduct) onSelectProduct(product);
+              }}
+              id={`view-details-${product.id}`}
+              className="w-full py-2.5 px-2 rounded-xl text-xs font-bold bg-[#faf8f5] hover:bg-[#fce7eb]/60 text-[#4a1525] border border-[#f4d5dc] transition-colors flex items-center justify-center gap-1 cursor-pointer"
             >
-              <Phone className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
+              <span>View Details</span>
             </button>
           </div>
         </div>

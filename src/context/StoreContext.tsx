@@ -23,6 +23,11 @@ import {
   Order,
   OrderStatus,
   StoreSettings,
+  HeroBanner,
+  HomepageSectionConfig,
+  CustomerReview,
+  BlogPost,
+  FAQItem,
 } from '../types';
 import {
   DEFAULT_STORE_SETTINGS,
@@ -30,6 +35,10 @@ import {
   INITIAL_OCCASIONS,
   INITIAL_GIFT_BOXES,
   INITIAL_PRODUCTS,
+  INITIAL_REVIEWS,
+  INITIAL_BLOGS,
+  INITIAL_FAQS,
+  DEFAULT_HOMEPAGE_SECTIONS,
 } from '../utils/seedData';
 import { useAuth } from './AuthContext';
 
@@ -40,6 +49,9 @@ interface StoreContextType {
   giftBoxes: GiftBox[];
   orders: Order[];
   storeSettings: StoreSettings;
+  reviews: CustomerReview[];
+  blogs: BlogPost[];
+  faqs: FAQItem[];
   loading: boolean;
   
   // Cart
@@ -59,7 +71,7 @@ interface StoreContextType {
   toggleWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
 
-  // WhatsApp Order
+  // WhatsApp Order & Support
   generateWhatsAppOrderUrl: (options: {
     customerName: string;
     customerPhone: string;
@@ -72,38 +84,66 @@ interface StoreContextType {
   }) => string;
   submitOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => Promise<string>;
 
-  // Admin Actions
+  // Admin Actions: Products
   addProduct: (product: Omit<Product, 'id'>) => Promise<string>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   updateStock: (productId: string, newStock: number) => Promise<void>;
+  saveProduct: (product: Omit<Product, 'id'>, id?: string) => Promise<string>;
+  deleteProductItem: (id: string) => Promise<void>;
   
+  // Admin Actions: Categories
   addCategory: (cat: Omit<Category, 'id'>) => Promise<string>;
   updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  saveCategory: (cat: Omit<Category, 'id'>, id?: string) => Promise<string>;
+  deleteCategoryItem: (id: string) => Promise<void>;
 
+  // Admin Actions: Occasions
   addOccasion: (occ: Omit<Occasion, 'id'>) => Promise<string>;
   updateOccasion: (id: string, updates: Partial<Occasion>) => Promise<void>;
   deleteOccasion: (id: string) => Promise<void>;
+  saveOccasion: (occ: Omit<Occasion, 'id'>, id?: string) => Promise<string>;
+  deleteOccasionItem: (id: string) => Promise<void>;
 
+  // Admin Actions: Gift Boxes
   addGiftBox: (box: Omit<GiftBox, 'id'>) => Promise<string>;
   updateGiftBox: (id: string, updates: Partial<GiftBox>) => Promise<void>;
   deleteGiftBox: (id: string) => Promise<void>;
-
-  updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
-  updateStoreSettings: (settings: Partial<StoreSettings>) => Promise<void>;
-  seedInitialDataIfEmpty: () => Promise<void>;
-
-  // Convenience Admin aliases
-  saveProduct: (product: Omit<Product, 'id'>, id?: string) => Promise<string>;
-  deleteProductItem: (id: string) => Promise<void>;
-  saveCategory: (cat: Omit<Category, 'id'>, id?: string) => Promise<string>;
-  deleteCategoryItem: (id: string) => Promise<void>;
-  saveOccasion: (occ: Omit<Occasion, 'id'>, id?: string) => Promise<string>;
-  deleteOccasionItem: (id: string) => Promise<void>;
   saveGiftBox: (box: Omit<GiftBox, 'id'>, id?: string) => Promise<string>;
   deleteGiftBoxItem: (id: string) => Promise<void>;
+
+  // Admin Actions: Hero Banners
+  addHeroBanner: (banner: Omit<HeroBanner, 'id'>) => Promise<void>;
+  updateHeroBanner: (id: string, updates: Partial<HeroBanner>) => Promise<void>;
+  deleteHeroBanner: (id: string) => Promise<void>;
+
+  // Admin Actions: Homepage Sections
+  updateHomepageSections: (sections: HomepageSectionConfig[]) => Promise<void>;
+  toggleHomepageSection: (id: string, isEnabled: boolean) => Promise<void>;
+  updateHomepageSectionConfig: (id: string, updates: Partial<HomepageSectionConfig>) => Promise<void>;
+
+  // Reviews
+  addCustomerReview: (review: Omit<CustomerReview, 'id' | 'date' | 'isApproved'>) => Promise<string>;
+  updateReviewStatus: (id: string, isApproved: boolean) => Promise<void>;
+  toggleFeatureReview: (id: string, isFeatured: boolean) => Promise<void>;
+  deleteCustomerReview: (id: string) => Promise<void>;
+
+  // Blog Posts
+  addBlogPost: (post: Omit<BlogPost, 'id' | 'date'>) => Promise<string>;
+  updateBlogPost: (id: string, updates: Partial<BlogPost>) => Promise<void>;
+  deleteBlogPost: (id: string) => Promise<void>;
+
+  // FAQs
+  addFAQItem: (faq: Omit<FAQItem, 'id'>) => Promise<string>;
+  updateFAQItem: (id: string, updates: Partial<FAQItem>) => Promise<void>;
+  deleteFAQItem: (id: string) => Promise<void>;
+
+  // Order & Settings
+  updateOrderStatus: (orderId: string, status: OrderStatus, trackingNumber?: string, courierPartner?: string, adminNotes?: string) => Promise<void>;
+  updateStoreSettings: (settings: Partial<StoreSettings>) => Promise<void>;
   updateSettings: (settings: Partial<StoreSettings>) => Promise<void>;
+  seedInitialDataIfEmpty: (forceReset?: boolean) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -123,6 +163,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
   const [orders, setOrders] = useState<Order[]>([]);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
+  const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_REVIEWS);
+  const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
+  const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
   const [loading, setLoading] = useState(true);
 
   // Cart state persisted locally
@@ -252,6 +295,67 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsub();
   }, []);
 
+  // Real-time listener: Customer Reviews
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'reviews'),
+      (snap) => {
+        const revs: CustomerReview[] = [];
+        snap.forEach((docSnap) => {
+          revs.push({ id: docSnap.id, ...(docSnap.data() as Omit<CustomerReview, 'id'>) });
+        });
+        if (revs.length > 0) {
+          setReviews(revs);
+        }
+      },
+      (error) => {
+        console.warn('Reviews listener notice:', error.message);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Real-time listener: Blog Posts
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'blogs'),
+      (snap) => {
+        const blgs: BlogPost[] = [];
+        snap.forEach((docSnap) => {
+          blgs.push({ id: docSnap.id, ...(docSnap.data() as Omit<BlogPost, 'id'>) });
+        });
+        if (blgs.length > 0) {
+          setBlogs(blgs);
+        }
+      },
+      (error) => {
+        console.warn('Blogs listener notice:', error.message);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Real-time listener: FAQs
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'faqs'),
+      (snap) => {
+        const fqs: FAQItem[] = [];
+        snap.forEach((docSnap) => {
+          fqs.push({ id: docSnap.id, ...(docSnap.data() as Omit<FAQItem, 'id'>) });
+        });
+        if (fqs.length > 0) {
+          fqs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+          setFaqs(fqs);
+        }
+      },
+      (error) => {
+        console.warn('FAQs listener notice:', error.message);
+      }
+    );
+    return () => unsub();
+  }, []);
+
   // Real-time listener: Orders (Admins see all; signed-in users see their own; guests see local)
   useEffect(() => {
     if (authLoading) return;
@@ -306,11 +410,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [authLoading, isAdmin, user?.uid]);
 
-  // Seed default categories, occasions, base boxes, and products if collections are empty
-  const seedInitialDataIfEmpty = async () => {
+  // Seed default categories, occasions, base boxes, products, reviews, blogs, faqs if collections are empty or on force reset
+  const seedInitialDataIfEmpty = async (forceReset = false) => {
     try {
       const prodSnap = await getDocs(collection(db, 'products'));
-      if (prodSnap.empty) {
+      if (prodSnap.empty || forceReset) {
         const batch = writeBatch(db);
         INITIAL_PRODUCTS.forEach((p) => {
           const { id, ...rest } = p;
@@ -326,7 +430,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const catSnap = await getDocs(collection(db, 'categories'));
-      if (catSnap.empty) {
+      if (catSnap.empty || forceReset) {
         const batch = writeBatch(db);
         INITIAL_CATEGORIES.forEach((cat) => {
           const docRef = doc(collection(db, 'categories'));
@@ -336,7 +440,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const occSnap = await getDocs(collection(db, 'occasions'));
-      if (occSnap.empty) {
+      if (occSnap.empty || forceReset) {
         const batch = writeBatch(db);
         INITIAL_OCCASIONS.forEach((occ) => {
           const docRef = doc(collection(db, 'occasions'));
@@ -346,7 +450,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const boxSnap = await getDocs(collection(db, 'gift_boxes'));
-      if (boxSnap.empty) {
+      if (boxSnap.empty || forceReset) {
         const batch = writeBatch(db);
         INITIAL_GIFT_BOXES.forEach((b) => {
           const docRef = doc(collection(db, 'gift_boxes'));
@@ -354,8 +458,48 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
         await batch.commit();
       }
+
+      const revSnap = await getDocs(collection(db, 'reviews'));
+      if (revSnap.empty || forceReset) {
+        const batch = writeBatch(db);
+        INITIAL_REVIEWS.forEach((rev) => {
+          const docRef = doc(collection(db, 'reviews'));
+          batch.set(docRef, { ...rev, id: docRef.id });
+        });
+        await batch.commit();
+      }
+
+      const blogSnap = await getDocs(collection(db, 'blogs'));
+      if (blogSnap.empty || forceReset) {
+        const batch = writeBatch(db);
+        INITIAL_BLOGS.forEach((blog) => {
+          const docRef = doc(collection(db, 'blogs'));
+          batch.set(docRef, { ...blog, id: docRef.id });
+        });
+        await batch.commit();
+      }
+
+      const faqSnap = await getDocs(collection(db, 'faqs'));
+      if (faqSnap.empty || forceReset) {
+        const batch = writeBatch(db);
+        INITIAL_FAQS.forEach((faq) => {
+          const docRef = doc(collection(db, 'faqs'));
+          batch.set(docRef, { ...faq, id: docRef.id });
+        });
+        await batch.commit();
+      }
+
+      // Seed store settings document if missing or forced
+      const settingRef = doc(db, 'store_settings', 'main');
+      if (forceReset) {
+        await setDoc(settingRef, {
+          ...DEFAULT_STORE_SETTINGS,
+          isInitialized: true,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      console.warn('Auto-seed notice:', err);
+      console.warn('Seed operation notice:', err);
     }
   };
 
@@ -737,9 +881,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Update order status and handle inventory automation:
-  // Requirement 15: "Stock must automatically decrease when an order is confirmed."
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  // Update order status and handle inventory automation & tracking:
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus: OrderStatus,
+    trackingNumber?: string,
+    courierPartner?: string,
+    adminNotes?: string
+  ) => {
     try {
       const targetOrder = orders.find((o) => o.id === orderId);
       if (!targetOrder) return;
@@ -771,7 +920,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      await updateDoc(doc(db, 'orders', orderId), { orderStatus: newStatus });
+      const updates: Record<string, any> = { orderStatus: newStatus };
+      if (trackingNumber !== undefined) updates.trackingNumber = trackingNumber;
+      if (courierPartner !== undefined) updates.courierPartner = courierPartner;
+      if (adminNotes !== undefined) updates.adminNotes = adminNotes;
+
+      await updateDoc(doc(db, 'orders', orderId), updates);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
     }
@@ -785,6 +939,121 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, 'store_settings/main');
     }
+  };
+
+  // Hero Banners
+  const addHeroBanner = async (banner: Omit<HeroBanner, 'id'>) => {
+    const newBanner: HeroBanner = {
+      ...banner,
+      id: `banner_${Date.now()}`,
+      order: (storeSettings.heroBanners?.length ?? 0) + 1,
+      isActive: banner.isActive !== undefined ? banner.isActive : true,
+    };
+    const updated = [...(storeSettings.heroBanners || []), newBanner];
+    await updateStoreSettings({ heroBanners: updated });
+  };
+
+  const updateHeroBanner = async (id: string, updates: Partial<HeroBanner>) => {
+    const updated = (storeSettings.heroBanners || []).map((b) =>
+      b.id === id ? { ...b, ...updates } : b
+    );
+    await updateStoreSettings({ heroBanners: updated });
+  };
+
+  const deleteHeroBanner = async (id: string) => {
+    const updated = (storeSettings.heroBanners || []).filter((b) => b.id !== id);
+    await updateStoreSettings({ heroBanners: updated });
+  };
+
+  // Homepage Sections
+  const updateHomepageSections = async (sections: HomepageSectionConfig[]) => {
+    await updateStoreSettings({ homepageSections: sections });
+  };
+
+  const toggleHomepageSection = async (id: string, isEnabled: boolean) => {
+    const currentSections = storeSettings.homepageSections?.length
+      ? storeSettings.homepageSections
+      : DEFAULT_HOMEPAGE_SECTIONS;
+    const updated = currentSections.map((sec) =>
+      sec.id === id ? { ...sec, isEnabled } : sec
+    );
+    await updateStoreSettings({ homepageSections: updated });
+  };
+
+  const updateHomepageSectionConfig = async (id: string, updates: Partial<HomepageSectionConfig>) => {
+    const currentSections = storeSettings.homepageSections?.length
+      ? storeSettings.homepageSections
+      : DEFAULT_HOMEPAGE_SECTIONS;
+    const updated = currentSections.map((sec) =>
+      sec.id === id ? { ...sec, ...updates } : sec
+    );
+    await updateStoreSettings({ homepageSections: updated });
+  };
+
+  // Reviews
+  const addCustomerReview = async (review: Omit<CustomerReview, 'id' | 'date' | 'isApproved'>): Promise<string> => {
+    const docRef = doc(collection(db, 'reviews'));
+    const newReview: CustomerReview = {
+      ...review,
+      id: docRef.id,
+      date: new Date().toISOString().split('T')[0],
+      isApproved: false,
+      isFeatured: false,
+    };
+    await setDoc(docRef, newReview);
+    return docRef.id;
+  };
+
+  const updateReviewStatus = async (id: string, isApproved: boolean) => {
+    await updateDoc(doc(db, 'reviews', id), { isApproved });
+  };
+
+  const toggleFeatureReview = async (id: string, isFeatured: boolean) => {
+    await updateDoc(doc(db, 'reviews', id), { isFeatured });
+  };
+
+  const deleteCustomerReview = async (id: string) => {
+    await deleteDoc(doc(db, 'reviews', id));
+  };
+
+  // Blog Posts
+  const addBlogPost = async (post: Omit<BlogPost, 'id' | 'date'>): Promise<string> => {
+    const docRef = doc(collection(db, 'blogs'));
+    const newPost: BlogPost = {
+      ...post,
+      id: docRef.id,
+      date: new Date().toISOString().split('T')[0],
+    };
+    await setDoc(docRef, newPost);
+    return docRef.id;
+  };
+
+  const updateBlogPost = async (id: string, updates: Partial<BlogPost>) => {
+    await updateDoc(doc(db, 'blogs', id), updates);
+  };
+
+  const deleteBlogPost = async (id: string) => {
+    await deleteDoc(doc(db, 'blogs', id));
+  };
+
+  // FAQs
+  const addFAQItem = async (faq: Omit<FAQItem, 'id'>): Promise<string> => {
+    const docRef = doc(collection(db, 'faqs'));
+    const newFaq: FAQItem = {
+      ...faq,
+      id: docRef.id,
+      order: faq.order ?? (faqs.length + 1),
+    };
+    await setDoc(docRef, newFaq);
+    return docRef.id;
+  };
+
+  const updateFAQItem = async (id: string, updates: Partial<FAQItem>) => {
+    await updateDoc(doc(db, 'faqs', id), updates);
+  };
+
+  const deleteFAQItem = async (id: string) => {
+    await deleteDoc(doc(db, 'faqs', id));
   };
 
   // Convenience Admin aliases
@@ -829,6 +1098,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         giftBoxes,
         orders,
         storeSettings,
+        reviews,
+        blogs,
+        faqs,
         loading,
         cart,
         addToCart,
@@ -870,6 +1142,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         saveGiftBox,
         deleteGiftBoxItem: deleteGiftBox,
         updateSettings: updateStoreSettings,
+        addHeroBanner,
+        updateHeroBanner,
+        deleteHeroBanner,
+        updateHomepageSections,
+        toggleHomepageSection,
+        updateHomepageSectionConfig,
+        addCustomerReview,
+        updateReviewStatus,
+        toggleFeatureReview,
+        deleteCustomerReview,
+        addBlogPost,
+        updateBlogPost,
+        deleteBlogPost,
+        addFAQItem,
+        updateFAQItem,
+        deleteFAQItem,
       }}
     >
       {children}

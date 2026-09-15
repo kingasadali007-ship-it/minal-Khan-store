@@ -213,19 +213,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
                 id="pdp-add-to-cart-btn"
-                className="w-full py-3.5 bg-[#1b3022] hover:bg-[#25422f] disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                className="w-full py-3.5 bg-[#1b3022] hover:bg-[#25422f] disabled:opacity-50 text-[#f7e7ce] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>{isOutOfStock ? t('statusOutOfStock') : t('btnAddToCart')}</span>
+                <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
               </button>
 
               <button
-                onClick={handleQuickWhatsApp}
-                id="pdp-order-whatsapp-btn"
-                className="w-full py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                onClick={() => {
+                  if (!isOutOfStock) {
+                    addToCart(product, quantity);
+                    setCurrentView('checkout');
+                  }
+                }}
+                disabled={isOutOfStock}
+                id="pdp-buy-now-btn"
+                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#c49f2b] disabled:opacity-50 text-[#1b3022] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
               >
-                <Phone className="w-4 h-4" />
-                <span>{t('btnOrderWhatsApp')}</span>
+                <span>Buy Now & Checkout</span>
               </button>
             </div>
 
@@ -243,11 +248,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8dfd3] space-y-2 text-xs text-stone-600">
             <div className="flex items-center gap-2 font-semibold text-stone-800">
               <Truck className="w-4 h-4 text-[#d4af37]" />
-              <span>Courier Delivery across Pakistan</span>
+              <span>Nationwide Express Courier across Pakistan</span>
             </div>
             <p className="text-[11px] text-stone-500 leading-relaxed">
-              Safe packing in bubble protection & branded MINAL KHAN gift wrap. Cash on Delivery
-              (COD) available. Standard transit 2–4 business days.
+              Safe packing in bubble protection & branded MINAL KHAN gift wrap. 100% verified Advance Bank Transfer.
+              Standard transit 1–3 business days.
             </p>
           </div>
         </div>

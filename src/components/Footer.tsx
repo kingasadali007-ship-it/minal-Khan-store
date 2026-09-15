@@ -19,20 +19,20 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
   const cleanWhatsApp = storeSettings.whatsappNumber.replace(/[^0-9]/g, '');
 
   return (
-    <footer className="bg-[#142319] text-[#e2d8cd] pt-16 pb-12 border-t border-[#253f2c]">
+    <footer className="bg-[#280a13] text-[#fce7eb]/90 pt-16 pb-12 border-t border-[#3d111e]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-[#253f2c]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-[#3d111e]">
           {/* Brand Column */}
           <div className="space-y-4">
             <div className="cursor-pointer" onClick={() => handleNav('home')}>
-              <span className="font-display text-2xl tracking-[0.2em] font-extrabold text-[#f7e7ce]">
+              <span className="font-display text-2xl tracking-[0.2em] font-extrabold text-[#faf6ee]">
                 {storeSettings.storeName || 'MINAL KHAN'}
               </span>
               <p className="text-xs uppercase tracking-widest text-[#d4af37] font-semibold mt-1">
                 {storeSettings.tagline || 'PREMIUM GIFTS & CUSTOMIZED GIFT BOXES'}
               </p>
             </div>
-            <p className="text-sm text-stone-300 leading-relaxed">
+            <p className="text-sm text-[#fce7eb]/80 leading-relaxed">
               MINAL KHAN is a premium online gift store in Pakistan offering luxury perfumes, watches, leather wallets, artisan chocolates, personalized gifts, and bespoke customized gift boxes nationwide.
             </p>
             <div className="pt-2">
@@ -40,45 +40,45 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
                 href={`https://wa.me/${cleanWhatsApp}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-[#20ba59] transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded-full text-xs font-bold hover:bg-[#20ba59] transition-colors shadow-sm"
               >
                 <Phone className="w-4 h-4" />
-                <span>{t('btnOrderWhatsApp')}</span>
+                <span>Concierge Support on WhatsApp</span>
               </a>
             </div>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-[#d4af37]">{t('navShop')}</h4>
-            <ul className="space-y-2 text-sm text-stone-300">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-[#d4af37]">Shop Collections</h4>
+            <ul className="space-y-2 text-sm text-[#fce7eb]/80">
               <li>
-                <button onClick={() => handleNav('shop')} className="hover:text-white transition-colors">
-                  {t('navShop')}
+                <button onClick={() => handleNav('shop')} className="hover:text-white transition-colors cursor-pointer">
+                  All Gifts & Hampers
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('categories')} className="hover:text-white transition-colors">
-                  {t('navCategories')}
+                <button onClick={() => handleNav('categories')} className="hover:text-white transition-colors cursor-pointer">
+                  Shop by Category
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('occasions')} className="hover:text-white transition-colors">
-                  {t('navOccasions')}
+                <button onClick={() => handleNav('occasions')} className="hover:text-white transition-colors cursor-pointer">
+                  Shop by Occasion
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleNav('box-builder')}
-                  className="hover:text-[#d4af37] font-semibold transition-colors flex items-center gap-1 text-[#f7e7ce]"
+                  className="hover:text-[#d4af37] font-semibold transition-colors flex items-center gap-1 text-[#faf6ee] cursor-pointer"
                 >
                   <Gift className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>{t('navGiftBoxBuilder')}</span>
+                  <span>Build Custom Box</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('cart')} className="hover:text-white transition-colors">
-                  {t('navCart')}
+                <button onClick={() => handleNav('track-order')} className="hover:text-[#d4af37] transition-colors font-medium cursor-pointer">
+                  Track Your Order
                 </button>
               </li>
             </ul>
@@ -87,30 +87,40 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
           {/* Customer Care & Policies */}
           <div className="space-y-3">
             <h4 className="text-sm font-bold uppercase tracking-wider text-[#d4af37]">Customer Care</h4>
-            <ul className="space-y-2 text-sm text-stone-300">
+            <ul className="space-y-2 text-sm text-[#fce7eb]/80">
               <li>
-                <button onClick={() => handleNav('about')} className="hover:text-white transition-colors">
-                  {t('navAboutUs')}
+                <button onClick={() => handleNav('shipping')} className="hover:text-white transition-colors cursor-pointer">
+                  Shipping & Delivery
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('contact')} className="hover:text-white transition-colors">
-                  {t('navContact')}
+                <button onClick={() => handleNav('faq')} className="hover:text-white transition-colors cursor-pointer">
+                  Frequently Asked Questions
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('privacy')} className="hover:text-white transition-colors">
-                  {t('navPrivacy')}
+                <button onClick={() => handleNav('blogs')} className="hover:text-white transition-colors cursor-pointer">
+                  Gifting Journal & Blog
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('terms')} className="hover:text-white transition-colors">
-                  {t('navTerms')}
+                <button onClick={() => handleNav('about')} className="hover:text-white transition-colors cursor-pointer">
+                  About MINAL KHAN
                 </button>
               </li>
               <li>
-                <button onClick={() => handleNav('account')} className="hover:text-white transition-colors">
-                  {t('navAccount')}
+                <button onClick={() => handleNav('contact')} className="hover:text-white transition-colors cursor-pointer">
+                  Contact & Atelier
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNav('privacy')} className="hover:text-white transition-colors cursor-pointer">
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNav('terms')} className="hover:text-white transition-colors cursor-pointer">
+                  Terms of Service
                 </button>
               </li>
             </ul>
@@ -118,15 +128,15 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
 
           {/* Concierge & Nationwide Delivery */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-[#d4af37]">Pakistani Concierge</h4>
-            <div className="space-y-2 text-xs text-stone-300">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-[#d4af37]">Nationwide Pakistan</h4>
+            <div className="space-y-2 text-xs text-[#fce7eb]/80">
               <div className="flex items-start gap-2">
                 <Truck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <span>Express Courier across Karachi, Lahore, Islamabad, Rawalpindi, and all cities.</span>
+                <span>Fast Courier across Karachi, Lahore, Islamabad, Rawalpindi, and 100+ cities.</span>
               </div>
               <div className="flex items-start gap-2">
                 <Shield className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <span>Cash on Delivery (COD) & Direct Bank Transfer available.</span>
+                <span>100% Verified Advance Bank Transfer for prioritized dispatch.</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#d4af37] shrink-0" />
@@ -145,14 +155,14 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentView }) => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-400">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#fce7eb]/60">
           <p>© {new Date().getFullYear()} {storeSettings.storeName || 'MINAL KHAN'}. All Rights Reserved. Crafted with care in Pakistan.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1 text-[#d4af37]">
               <Sparkles className="w-3.5 h-3.5" /> Currency: Pakistani Rupee (PKR - Rs.)
             </span>
             <span>•</span>
-            <span>Gift Packaging Guarantee</span>
+            <span>Luxury Packaging Guarantee</span>
           </div>
         </div>
       </div>

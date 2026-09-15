@@ -637,20 +637,34 @@ export const GiftBoxBuilderPage: React.FC<GiftBoxBuilderPageProps> = ({
                 onClick={handleAddToCart}
                 disabled={!selectedBox || boxItems.length === 0}
                 id="add-custom-box-to-cart-btn"
-                className="w-full py-3 bg-[#1b3022] hover:bg-[#25422f] disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                className="w-full py-3.5 bg-[#1b3022] hover:bg-[#25422f] disabled:opacity-50 text-[#f7e7ce] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>{t('btnAddToCart')}</span>
+                <span>Add Custom Box to Cart</span>
               </button>
 
               <button
-                onClick={handleOrderOnWhatsApp}
+                onClick={() => {
+                  if (!selectedBox) {
+                    alert('Please select a luxury gift box packaging first.');
+                    return;
+                  }
+                  if (boxItems.length === 0) {
+                    alert('Please select at least 1 gift product to place inside the box.');
+                    return;
+                  }
+                  const customBox = buildCurrentBoxObject();
+                  if (customBox) {
+                    addCustomBoxToCart(customBox);
+                    setCurrentView('checkout');
+                  }
+                }}
                 disabled={!selectedBox || boxItems.length === 0}
-                id="whatsapp-custom-box-order-btn"
-                className="w-full py-3 bg-[#25D366] hover:bg-[#20ba59] disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                id="checkout-custom-box-btn"
+                className="w-full py-3.5 bg-[#d4af37] hover:bg-[#c49f2b] disabled:opacity-50 text-[#1b3022] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
               >
-                <Phone className="w-4 h-4" />
-                <span>{t('btnOrderWhatsApp')}</span>
+                <Gift className="w-4 h-4" />
+                <span>Add & Proceed to Checkout</span>
               </button>
             </div>
           </div>

@@ -12,6 +12,10 @@ Allow: /about
 Allow: /contact
 Allow: /privacy
 Allow: /terms
+Allow: /blogs
+Allow: /faq
+Allow: /shipping
+Allow: /track-order
 
 # Block private, authenticated, and administrative routes
 Disallow: /admin

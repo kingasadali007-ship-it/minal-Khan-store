@@ -10,6 +10,7 @@ import {
   Truck,
   CheckCircle,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -400,116 +401,38 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             </div>
 
-            {/* Big Action: Instant Order on WhatsApp */}
-            <div className="pt-2">
+            {/* Proceed to Checkout Action */}
+            <div className="pt-2 space-y-3">
               <button
                 type="button"
-                onClick={onOpenWhatsAppCartOrder}
-                id="cart-order-on-whatsapp-btn"
-                className="w-full py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+                onClick={() => setCurrentView('checkout')}
+                id="cart-proceed-checkout-btn"
+                className="w-full py-4 bg-[#1b3022] hover:bg-[#25422f] text-[#f7e7ce] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
-                <Phone className="w-4 h-4" />
-                <span>{t('btnOrderWhatsApp')}</span>
+                <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
+                <span>Proceed to Checkout</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
               </button>
+
+              <div className="p-3 bg-[#faf8f5] rounded-xl border border-[#e8dfd3] space-y-1.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-stone-800">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  <span>Advance Bank Transfer Only</span>
+                </div>
+                <p className="text-[11px] text-stone-500 leading-tight">
+                  100% verified online bank transfer with instant payment receipt upload. No Cash on Delivery.
+                </p>
+              </div>
             </div>
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-stone-200"></div>
-              <span className="flex-shrink mx-3 text-stone-400 text-[11px] uppercase">
-                Or Checkout Online (COD)
-              </span>
-              <div className="flex-grow border-t border-stone-200"></div>
-            </div>
-
-            {/* Pakistan Delivery Form */}
-            <form onSubmit={handleStandardCheckout} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  {t('formName')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Asad Ali / Ayesha Khan"
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#1b3022] outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    {t('formPhone')} *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="03001234567"
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#1b3022] outline-none font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    City (Pakistan) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Lahore, Karachi..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#1b3022] outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  {t('formAddress')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="House, Street, Sector / Colony"
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#1b3022] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Delivery Notes / Calligraphy Request
-                </label>
-                <textarea
-                  rows={2}
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="e.g. Please wrap with golden ribbon / deliver Saturday morning"
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#1b3022] outline-none"
-                />
-              </div>
-
-              <div className="p-2.5 bg-[#faf8f5] rounded-lg border border-stone-200 text-stone-600 text-[11px]">
-                <span>Payment Mode: </span>
-                <span className="font-bold text-stone-800">
-                  Cash on Delivery (COD) / Direct Bank Transfer
-                </span>
-              </div>
-
+            <div className="pt-2 text-center">
               <button
-                type="submit"
-                disabled={isSubmitting}
-                id="place-order-cod-btn"
-                className="w-full py-3 bg-[#1b3022] hover:bg-[#25422f] text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                onClick={() => setCurrentView('shop')}
+                className="text-xs font-medium text-stone-500 hover:text-stone-800"
               >
-                <span>{isSubmitting ? 'Recording Order...' : 'Place Order (COD)'}</span>
-                <ArrowRight className="w-4 h-4" />
+                ← Continue Shopping
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </div>

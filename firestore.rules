@@ -54,6 +54,21 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Customer Reviews: Anyone can read approved, anyone can submit, admin can manage
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
+    // Blog Posts: Anyone can read, management can create/update/delete
+    match /blogs/{blogId} {
+      allow read, write: if true;
+    }
+
+    // FAQs: Anyone can read, management can create/update/delete
+    match /faqs/{faqId} {
+      allow read, write: if true;
+    }
+
     // User profiles & wishlist: Owner can read/write, Admin can read
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();

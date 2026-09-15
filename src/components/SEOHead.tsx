@@ -110,6 +110,41 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
         isNoIndex = true;
         break;
 
+      case 'checkout':
+        title = 'Secure Checkout | Advance Bank Transfer | MINAL KHAN';
+        description = 'Complete your gift order with secure advance bank transfer verification.';
+        canonicalPath = '/checkout';
+        isNoIndex = true;
+        break;
+
+      case 'track-order':
+        title = 'Track Your Gift Order | MINAL KHAN Pakistan';
+        description = 'Check the real-time status and delivery verification of your MINAL KHAN gift order.';
+        canonicalPath = '/track-order';
+        breadcrumbs.push({ name: 'Track Order', url: `${BASE_URL}/track-order` });
+        break;
+
+      case 'blogs':
+        title = 'Gifting Journal & Inspiration | MINAL KHAN Pakistan';
+        description = 'Curated gifting ideas, etiquette guides, anniversary gifts and luxury hampers advice in Pakistan.';
+        canonicalPath = '/blogs';
+        breadcrumbs.push({ name: 'Journal', url: `${BASE_URL}/blogs` });
+        break;
+
+      case 'faq':
+        title = 'Frequently Asked Questions & Support | MINAL KHAN';
+        description = 'Answers regarding advance bank transfers, express delivery in Karachi, Lahore & Islamabad, and customized gift boxes.';
+        canonicalPath = '/faq';
+        breadcrumbs.push({ name: 'FAQ', url: `${BASE_URL}/faq` });
+        break;
+
+      case 'shipping':
+        title = 'Shipping, Delivery & Payment Policy | MINAL KHAN';
+        description = 'Nationwide courier shipping timelines, advance bank transfer verification, and safe transit guarantees.';
+        canonicalPath = '/shipping';
+        breadcrumbs.push({ name: 'Shipping Policy', url: `${BASE_URL}/shipping` });
+        break;
+
       case 'wishlist':
         title = 'Saved Wishlist | MINAL KHAN';
         description = 'Your favorite luxury gifts and custom hampers saved for later.';

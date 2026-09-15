@@ -1,166 +1,146 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'ur';
+export type Language = 'en';
 
-export interface Translations {
-  [key: string]: {
-    en: string;
-    ur: string;
-  };
-}
-
-export const dictionary: Translations = {
+export const dictionary: Record<string, string> = {
   // Brand
-  brandName: { en: 'MINAL KHAN', ur: 'مینل خان' },
-  tagline: { en: 'Premium Gifts & Customized Gift Boxes', ur: 'پریمیئم تحائف اور کسٹمائزڈ گفٹ باکسز' },
+  brandName: 'MINAL KHAN',
+  tagline: 'Premium Gifts & Customized Gift Boxes',
   
   // Navigation
-  navHome: { en: 'Home', ur: 'ہوم' },
-  navShop: { en: 'Shop All Gifts', ur: 'تمام تحائف' },
-  navCategories: { en: 'Categories', ur: 'کیٹیگریز' },
-  navOccasions: { en: 'Occasions', ur: 'مواقع' },
-  navGiftBoxBuilder: { en: 'Build Your Own Box', ur: 'اپنا گفٹ باکس بنائیں' },
-  navCart: { en: 'Gift Cart', ur: 'کارٹ' },
-  navWishlist: { en: 'Wishlist', ur: 'پسندیدہ' },
-  navAccount: { en: 'My Account', ur: 'میرا اکاؤنٹ' },
-  navAdmin: { en: 'Admin Panel', ur: 'ایڈمن پینل' },
-  navAboutUs: { en: 'About Us', ur: 'ہمارے بارے میں' },
-  navContact: { en: 'Contact & Concierge', ur: 'رابطہ و رہنمائی' },
-  navPrivacy: { en: 'Privacy Policy', ur: 'پرائیویسی پالیسی' },
-  navTerms: { en: 'Terms & Delivery', ur: 'شرائط و ترسیل' },
+  navHome: 'Home',
+  navShop: 'Shop All Gifts',
+  navCategories: 'Categories',
+  navOccasions: 'Occasions',
+  navGiftBoxBuilder: 'Build Your Own Box',
+  navCart: 'Gift Cart',
+  navWishlist: 'Wishlist',
+  navAccount: 'My Account',
+  navAdmin: 'Admin Panel',
+  navAboutUs: 'About Us',
+  navContact: 'Contact & Support',
+  navPrivacy: 'Privacy Policy',
+  navTerms: 'Terms & Delivery',
 
   // Hero
-  heroTitle: { en: 'MINAL KHAN — Premium Gifts & Customized Gift Boxes in Pakistan', ur: 'مینل خان — پاکستان میں پریمیم تحائف اور کسٹمائزڈ گفٹ باکسز' },
-  heroSubtitle: { en: 'MINAL KHAN is a premium online gift store in Pakistan offering thoughtfully curated gifts for birthdays, anniversaries, weddings, Eid, Valentine\'s Day, celebrations and special moments. Shop perfumes, watches, wallets, chocolates, jewellery, personalized gifts and customized gift boxes.', ur: 'مینل خان پاکستان کا ایک پریمیم آن لائن گفٹ اسٹور ہے جہاں سالگرہ، شادی، عید، اور دیگر خاص لمحات کے لیے بہترین تحائف، پرفیومز، گھڑیاں اور کسٹم گفٹ باکسز دستیاب ہیں۔' },
-  heroShopBtn: { en: 'Shop Gifts', ur: 'تحائف دیکھیں' },
-  heroBuildBtn: { en: 'Build Your Own Gift Box', ur: 'اپنا گفٹ باکس تیار کریں' },
-  heroExploreBoxTitle: { en: 'Signature Custom Gift Box', ur: 'خصوصی کسٹم گفٹ باکس' },
-  heroExploreBoxDesc: { en: 'Handpick items, choose luxury packaging, and add a personalized calligraphy card note.', ur: 'اپنی مرضی کے تحائف چنیں، شاہانہ پیکنگ کا انتخاب کریں اور خوبصورت پیغام شامل کریں۔' },
+  heroTitle: 'MINAL KHAN — Premium Gifts & Customized Gift Boxes in Pakistan',
+  heroSubtitle: 'MINAL KHAN is a premium online gift store in Pakistan offering thoughtfully curated gifts for birthdays, anniversaries, weddings, Eid, celebrations and special moments. Shop perfumes, watches, wallets, chocolates, jewellery, personalized gifts and customized gift boxes.',
+  heroShopBtn: 'Shop Gifts',
+  heroBuildBtn: 'Build Your Own Gift Box',
+  heroExploreBoxTitle: 'Signature Custom Gift Box',
+  heroExploreBoxDesc: 'Handpick items, choose luxury packaging, and add a personalized calligraphy card note.',
 
   // Section Titles
-  secFeatured: { en: 'Featured Gifts', ur: 'نمایاں تحائف' },
-  secCategories: { en: 'Shop by Category', ur: 'کیٹیگری کے لحاظ سے دیکھیں' },
-  secOccasions: { en: 'Shop by Occasion', ur: 'مواقع کے مطابق تحائف' },
-  secBoxBuilderPromo: { en: 'Craft Your Custom Box', ur: 'اپنا ذاتی گفٹ باکس تیار کریں' },
-  secBestSellers: { en: 'Best Sellers', ur: 'سب سے زیادہ پسندیدہ' },
-  secNewArrivals: { en: 'New Arrivals', ur: 'نئی آمد' },
-  secWhyChoose: { en: 'Why Choose MINAL KHAN', ur: 'مینل خان کا انتخاب کیوں؟' },
-  secReviews: { en: 'Words of Appreciation', ur: 'ہمارے معزز صارفین کی رائے' },
-  secConcierge: { en: 'VIP WhatsApp Concierge', ur: 'وی آئی پی واٹس ایپ رہنمائی' },
+  secFeatured: 'Featured Gifts',
+  secCategories: 'Shop by Category',
+  secOccasions: 'Shop by Occasion',
+  secBoxBuilderPromo: 'Craft Your Custom Box',
+  secBestSellers: 'Best Sellers',
+  secNewArrivals: 'New Arrivals',
+  secWhyChoose: 'Why Choose MINAL KHAN',
+  secReviews: 'Words of Appreciation',
+  secConcierge: 'Customer Support',
 
   // Actions & Buttons
-  btnAddToCart: { en: 'Add to Cart', ur: 'کارٹ میں شامل کریں' },
-  btnBuyNow: { en: 'Buy Now', ur: 'ابھی خریدیں' },
-  btnOrderWhatsApp: { en: 'ORDER ON WHATSAPP', ur: 'واٹس ایپ پر آرڈر کریں' },
-  btnViewDetails: { en: 'View Details', ur: 'تفصیلات دیکھیں' },
-  btnCustomizeNow: { en: 'Start Building Box', ur: 'باکس بنانا شروع کریں' },
-  btnProceedCheckout: { en: 'Proceed to Checkout', ur: 'چیک آؤٹ کی طرف بڑھیں' },
-  btnApply: { en: 'Apply', ur: 'لاگو کریں' },
-  btnSave: { en: 'Save Changes', ur: 'تبدیلیاں محفوظ کریں' },
-  btnCancel: { en: 'Cancel', ur: 'منسوخ' },
-  btnDelete: { en: 'Delete', ur: 'حذف کریں' },
-  btnEdit: { en: 'Edit', ur: 'ترمیم کریں' },
-  btnSearch: { en: 'Search', ur: 'تلاش کریں' },
-  btnFilter: { en: 'Filter', ur: 'فلٹر کریں' },
-  btnClearFilter: { en: 'Clear Filters', ur: 'تمام فلٹرز ختم کریں' },
-  btnContinueShopping: { en: 'Continue Shopping', ur: 'خریداری جاری رکھیں' },
-  btnEmptyCart: { en: 'Empty Cart', ur: 'کارٹ خالی کریں' },
-  btnSignIn: { en: 'Sign In', ur: 'لاگ ان کریں' },
-  btnSignUp: { en: 'Create Account', ur: 'نیا اکاؤنٹ بنائیں' },
-  btnLogout: { en: 'Log Out', ur: 'لاگ آؤٹ' },
-  btnTrackOrder: { en: 'Track Order', ur: 'آرڈر ٹریک کریں' },
+  btnAddToCart: 'Add to Cart',
+  btnBuyNow: 'Buy Now',
+  btnOrderWhatsApp: 'Order Now',
+  btnViewDetails: 'View Details',
+  btnCustomizeNow: 'Start Building Box',
+  btnProceedCheckout: 'Proceed to Checkout',
+  btnApply: 'Apply',
+  btnSave: 'Save Changes',
+  btnCancel: 'Cancel',
+  btnDelete: 'Delete',
+  btnEdit: 'Edit',
+  btnSearch: 'Search',
+  btnFilter: 'Filter',
+  btnClearFilter: 'Clear Filters',
+  btnContinueShopping: 'Continue Shopping',
+  btnEmptyCart: 'Empty Cart',
+  btnSignIn: 'Sign In',
+  btnSignUp: 'Create Account',
+  btnLogout: 'Log Out',
+  btnTrackOrder: 'Track Order',
 
   // Gift Box Builder
-  boxStep1Title: { en: '1. Choose Your Box', ur: '۱۔ اپنا گفٹ باکس منتخب کریں' },
-  boxStep2Title: { en: '2. Select Gifts to Include', ur: '۲۔ تحائف کا انتخاب کریں' },
-  boxStep3Title: { en: '3. Personalize & Note', ur: '۳۔ ذاتی پیغام اور ربن' },
-  boxStep4Title: { en: '4. Review & Complete', ur: '۴۔ جائزہ لیں اور آرڈر کریں' },
-  boxBasePrice: { en: 'Box Packaging Price', ur: 'باکس کی قیمت' },
-  boxProductsCount: { en: 'Items Inside Box', ur: 'باکس میں موجود اشیاء' },
-  boxProductsTotal: { en: 'Products Total', ur: 'اشیاء کی کل قیمت' },
-  boxTotalCalc: { en: 'Total Custom Box Price', ur: 'کسٹم باکس کی مجموعی قیمت' },
-  boxSelectNotice: { en: 'Select your preferred luxury box packaging to get started', ur: 'شروع کرنے کے لیے اپنی پسند کا شاہانہ گفٹ باکس منتخب کریں' },
-  boxAddProductBtn: { en: 'Add to Box', ur: 'باکس میں ڈالیں' },
-  boxRemoveProductBtn: { en: 'Remove', ur: 'نکالیں' },
-  boxRecipientName: { en: 'Recipient Name (To)', ur: 'وصول کنندہ کا نام (بنام)' },
-  boxSenderName: { en: 'Your Name (From)', ur: 'آپ کا نام (منجانب)' },
-  boxMessageLabel: { en: 'Personal Handwritten Card Message', ur: 'ہاتھ سے لکھا ہوا گفٹ کارڈ کا پیغام' },
-  boxMessagePlaceholder: { en: 'Write a warm and heartfelt message to be included on a luxury gold-embossed card...', ur: 'گفٹ کارڈ کے لیے اپنا محبت بھرا پیغام یہاں تحریر کریں...' },
-  boxRibbonLabel: { en: 'Satin Ribbon Color', ur: 'ساٹن ربن کا رنگ' },
-  boxRibbonGold: { en: 'Royal Champagne Gold', ur: 'شاہی شیمپین گولڈ' },
-  boxRibbonEmerald: { en: 'Deep Emerald Velvet', ur: 'گہرا زمردی سبز' },
-  boxRibbonBlush: { en: 'Blush Rose Pink', ur: 'گلابی روز ساٹن' },
-  boxRibbonBlack: { en: 'Midnight Black Satin', ur: 'مڈ نائٹ بلیک' },
-  boxAddSuccess: { en: 'Custom Gift Box added to your cart!', ur: 'کسٹم گفٹ باکس کارٹ میں شامل کر دیا گیا!' },
+  boxStep1Title: '1. Choose Your Box',
+  boxStep2Title: '2. Select Gifts to Include',
+  boxStep3Title: '3. Personalize & Note',
+  boxStep4Title: '4. Review & Complete',
+  boxBasePrice: 'Box Packaging Price',
+  boxProductsCount: 'Items Inside Box',
+  boxProductsTotal: 'Products Total',
+  boxTotalCalc: 'Total Custom Box Price',
+  boxSelectNotice: 'Select your preferred luxury box packaging to get started',
+  boxAddProductBtn: 'Add to Box',
+  boxRemoveProductBtn: 'Remove',
+  boxRecipientName: 'Recipient Name (To)',
+  boxSenderName: 'Your Name (From)',
+  boxMessageLabel: 'Personal Handwritten Card Message',
+  boxMessagePlaceholder: 'Write a warm and heartfelt message to be included on a luxury gold-embossed card...',
+  boxRibbonLabel: 'Satin Ribbon Color',
+  boxRibbonGold: 'Royal Champagne Gold',
+  boxRibbonEmerald: 'Deep Emerald Velvet',
+  boxRibbonBlush: 'Blush Rose Pink',
+  boxRibbonBlack: 'Midnight Black Satin',
+  boxAddSuccess: 'Custom Gift Box added to your cart!',
 
   // Cart & Checkout
-  cartTitle: { en: 'Your Gift Cart', ur: 'آپ کی گفٹ کارٹ' },
-  cartEmpty: { en: 'Your gift cart is empty.', ur: 'آپ کی گفٹ کارٹ خالی ہے۔' },
-  cartSubtotal: { en: 'Subtotal', ur: 'ذیلی کل' },
-  cartDeliveryFee: { en: 'Delivery Charges (Pakistan)', ur: 'ترسیل کے اخراجات (پورے پاکستان میں)' },
-  cartFreeDeliveryQualified: { en: 'Free Nationwide Delivery Applied!', ur: 'مفت ملک گیر ترسیل لاگو ہو چکی ہے!' },
-  cartFreeDeliveryPrompt: { en: 'Add Rs. {amount} more for FREE delivery across Pakistan', ur: 'مفت ترسیل کے لیے مزید {amount} روپے کا سامان شامل کریں' },
-  cartTotal: { en: 'Final Total', ur: 'مکمل ٹوٹل' },
-  cartCustomBoxBadge: { en: 'Custom Crafted Gift Box', ur: 'کسٹم تیار کردہ گفٹ باکس' },
+  cartTitle: 'Your Gift Cart',
+  cartEmpty: 'Your gift cart is empty.',
+  cartSubtotal: 'Subtotal',
+  cartDeliveryFee: 'Delivery Charges (Pakistan)',
+  cartFreeDeliveryQualified: 'Free Nationwide Delivery Applied!',
+  cartFreeDeliveryPrompt: 'Add Rs. {amount} more for FREE delivery across Pakistan',
+  cartTotal: 'Final Total',
+  cartCustomBoxBadge: 'Custom Crafted Gift Box',
 
   // Delivery & Customer Form
-  formName: { en: 'Full Name', ur: 'مکمل نام' },
-  formPhone: { en: 'Contact Phone Number', ur: 'فون نمبر' },
-  formWhatsApp: { en: 'WhatsApp Number (for order confirmation)', ur: 'واٹس ایپ نمبر (آرڈر کی تصدیق کے لیے)' },
-  formEmail: { en: 'Email Address (optional)', ur: 'ای میل ایڈریس (اختیاری)' },
-  formCity: { en: 'City (e.g. Lahore, Karachi, Islamabad, Peshawar...)', ur: 'شہر (مثلاً لاہور، کراچی، اسلام آباد، پشاور...)' },
-  formAddress: { en: 'Complete Delivery Address (House/Street/Area)', ur: 'مکمل پتہ (مکان نمبر، گلی، علاقہ)' },
-  formInstructions: { en: 'Special Delivery or Packaging Instructions', ur: 'ڈیلیوری یا پیکنگ سے متعلق خاص ہدایات' },
-  formPaymentMethod: { en: 'Cash on Delivery (COD) / Direct Bank Transfer', ur: 'کیش آن ڈیلیوری / آن لائن بینک ٹرانسفر' },
+  formName: 'Full Name',
+  formPhone: 'Contact Phone Number',
+  formWhatsApp: 'WhatsApp Number (for order confirmation)',
+  formEmail: 'Email Address (optional)',
+  formCity: 'City (e.g. Lahore, Karachi, Islamabad, Peshawar...)',
+  formAddress: 'Complete Delivery Address (House/Street/Area)',
+  formInstructions: 'Special Delivery or Packaging Instructions',
+  formPaymentMethod: 'Advance Bank Transfer',
 
   // Status & Badges
-  statusInStock: { en: 'In Stock', ur: 'دستیاب ہے' },
-  statusOutOfStock: { en: 'Out of Stock', ur: 'ختم ہو چکا ہے' },
-  statusLowStock: { en: 'Only {count} left in stock!', ur: 'صرف {count} باقی ہیں!' },
-  badgeFeatured: { en: 'Signature Gift', ur: 'خصوصی تحفہ' },
-  badgeSale: { en: 'Special Offer', ur: 'رعایتی قیمت' },
+  statusInStock: 'In Stock',
+  statusOutOfStock: 'Out of Stock',
+  statusLowStock: 'Only {count} left in stock!',
+  badgeFeatured: 'Signature Gift',
+  badgeSale: 'Special Offer',
 
   // Orders
-  orderStatusNew: { en: 'New Order', ur: 'نیا آرڈر' },
-  orderStatusConfirmed: { en: 'Confirmed', ur: 'تصدیق شدہ' },
-  orderStatusPreparing: { en: 'Gift Packaging & Preparing', ur: 'پیکنگ و تیاری جاری' },
-  orderStatusReady: { en: 'Ready for Dispatch', ur: 'ارسال کے لیے تیار' },
-  orderStatusDelivered: { en: 'Delivered', ur: 'پہنچ گیا' },
-  orderStatusCancelled: { en: 'Cancelled', ur: 'منسوخ' },
+  orderStatusNew: 'New Order',
+  orderStatusConfirmed: 'Confirmed',
+  orderStatusPreparing: 'Gift Packaging & Preparing',
+  orderStatusReady: 'Ready for Dispatch',
+  orderStatusDelivered: 'Delivered',
+  orderStatusCancelled: 'Cancelled',
 
   // Currencies & Numbers
-  currency: { en: 'Rs.', ur: 'روپے' },
-  pkr: { en: 'PKR', ur: 'روپے' },
-
-  // WhatsApp Messages
-  waGreeting: { en: 'Assalam-o-Alaikum MINAL KHAN! I would like to place an order:', ur: 'السلام علیکم مینل خان! میں آرڈر بک کروانا چاہتا/چاہتی ہوں:' },
-  waCustomerDetails: { en: 'Customer Details', ur: 'گاہک کی تفصیلات' },
-  waOrderSummary: { en: 'Order Details', ur: 'آرڈر کی تفصیلات' },
-  waTotalBill: { en: 'Total Bill', ur: 'کل رقم' },
-  waQuickInquiry: { en: 'Assalam-o-Alaikum! I have a question about this gift from MINAL KHAN:', ur: 'السلام علیکم! مجھے مینل خان کے اس تحفے کے بارے میں معلومات درکار ہیں:' },
-
-  // Account
-  accWelcome: { en: 'Welcome to MINAL KHAN Concierge', ur: 'مینل خان وی آئی پی کلب میں خوش آمدید' },
-  accOrdersHistory: { en: 'Order History & Status', ur: 'سابقہ آرڈرز اور کیفیت' },
-  accNoOrders: { en: 'You have not placed any orders yet.', ur: 'ابھی تک آپ نے کوئی آرڈر بک نہیں کروایا۔' },
-  accProfileInfo: { en: 'Saved Delivery Information', ur: 'محفوظ شدہ ڈیلیوری کی معلومات' },
+  currency: 'Rs.',
+  pkr: 'PKR',
 
   // Notifications & Messages
-  msgAddedToCart: { en: 'Added to your gift cart', ur: 'کارٹ میں شامل کر دیا گیا' },
-  msgAddedToWishlist: { en: 'Added to your wishlist', ur: 'پسندیدہ میں شامل کیا گیا' },
-  msgRemovedWishlist: { en: 'Removed from wishlist', ur: 'پسندیدہ سے ہٹا دیا گیا' },
-  msgOrderSuccess: { en: 'Order placed successfully! Redirecting to WhatsApp...', ur: 'آرڈر کامیابی سے درج ہو گیا! واٹس ایپ پر منتقل کیا جا رہا ہے...' },
-  msgFillRequired: { en: 'Please fill in all required fields.', ur: 'برائے مہربانی تمام ضروری خانے پر کریں۔' },
+  msgAddedToCart: 'Added to your gift cart',
+  msgAddedToWishlist: 'Added to your wishlist',
+  msgRemovedWishlist: 'Removed from wishlist',
+  msgOrderSuccess: 'Order placed successfully!',
+  msgFillRequired: 'Please fill in all required fields.',
 
   // Features
-  feat1Title: { en: 'Nationwide Luxury Delivery', ur: 'پورے پاکستان میں تیز ترسیل' },
-  feat1Desc: { en: 'Delicate handling and prompt courier delivery to Karachi, Lahore, Islamabad, and across Pakistan.', ur: 'کراچی، لاہور، اسلام آباد سمیت ملک بھر میں محفوظ ترین ترسیل۔' },
-  feat2Title: { en: 'Custom Box Calligraphy', ur: 'خوبصورت کسٹم خطاطی' },
-  feat2Desc: { en: 'Personalized handwritten cards and bespoke ribbon finishes on every gift hamper.', ur: 'ہر گفٹ باکس پر ہاتھ سے لکھا محبت بھرا کارڈ اور شاہانہ ربن۔' },
-  feat3Title: { en: '100% Authentic Quality', ur: 'سو فیصد معیاری اشیاء' },
-  feat3Desc: { en: 'Premium perfumes, genuine leather, fine timepieces, and artisan chocolates.', ur: 'عمدہ پرفیومز، خالص چمڑا، برانڈڈ گھڑیاں اور لذیذ چاکلیٹس۔' },
-  feat4Title: { en: 'Instant WhatsApp Concierge', ur: 'فوری واٹس ایپ رابطہ' },
-  feat4Desc: { en: 'Direct coordination with our gift curators for custom requests and urgent surprises.', ur: 'خصوصی تحائف اور فوری سرپرائزز کے لیے ہمارے نمائندے سے براہِ راست بات کریں۔' },
+  feat1Title: 'Nationwide Luxury Delivery',
+  feat1Desc: 'Delicate handling and prompt courier delivery to Karachi, Lahore, Islamabad, and across Pakistan.',
+  feat2Title: 'Custom Box Calligraphy',
+  feat2Desc: 'Personalized handwritten cards and bespoke ribbon finishes on every gift hamper.',
+  feat3Title: '100% Authentic Quality',
+  feat3Desc: 'Premium perfumes, genuine leather, fine timepieces, and artisan chocolates.',
+  feat4Title: 'Dedicated Customer Support',
+  feat4Desc: 'Direct assistance from our gift curators for custom requests and urgent surprises.',
 };
 
 interface LanguageContextType {
@@ -173,27 +153,21 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Storefront is strictly English-only as per production requirements
-  const [language, setLanguageState] = useState<Language>('en');
-
-  const setLanguage = (lang: Language) => {
-    // Retain API surface for backward compatibility, enforcing English storefront
-    setLanguageState('en');
-    localStorage.setItem('minal_khan_lang', 'en');
-  };
-
+  const language: Language = 'en';
   const isUrdu = false;
+
+  const setLanguage = (_lang: Language) => {
+    // English only
+  };
 
   useEffect(() => {
     document.documentElement.lang = 'en';
     document.documentElement.dir = 'ltr';
     document.body.classList.remove('font-urdu');
-    localStorage.setItem('minal_khan_lang', 'en');
   }, []);
 
   const t = (key: string, replacements?: Record<string, string | number>): string => {
-    const entry = dictionary[key];
-    let text = entry ? entry.en : key;
+    let text = dictionary[key] || key;
 
     if (replacements) {
       Object.entries(replacements).forEach(([k, v]) => {

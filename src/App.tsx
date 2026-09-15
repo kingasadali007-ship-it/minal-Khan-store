@@ -4,6 +4,9 @@ import { AuthProvider } from './context/AuthContext';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { AnnouncementBar } from './components/AnnouncementBar';
+import { SplashScreen } from './components/SplashScreen';
+import { FloatingWhatsAppHelp } from './components/FloatingWhatsAppHelp';
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
 import { CategoriesPage } from './pages/CategoriesPage';
@@ -11,6 +14,11 @@ import { OccasionsPage } from './pages/OccasionsPage';
 import { GiftBoxBuilderPage } from './pages/GiftBoxBuilderPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CartPage } from './pages/CartPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { TrackOrderPage } from './pages/TrackOrderPage';
+import { BlogsPage } from './pages/BlogsPage';
+import { FAQPage } from './pages/FAQPage';
+import { ShippingPage } from './pages/ShippingPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { AccountPage } from './pages/AccountPage';
 import { AuthPage } from './pages/AuthPage';
@@ -20,10 +28,10 @@ import { OrderWhatsAppModal } from './components/OrderWhatsAppModal';
 import { SearchModal } from './components/SearchModal';
 import { SEOHead } from './components/SEOHead';
 import { Product, CustomGiftBox } from './types';
-import { Phone, MessageCircle } from 'lucide-react';
 
 function AppContent() {
   const { storeSettings, cart, cartTotal, products } = useStore();
+  const [showSplash, setShowSplash] = useState(true);
 
   const getPathToView = (path: string): string => {
     const p = path.toLowerCase();
@@ -32,6 +40,11 @@ function AppContent() {
     if (p === '/categories' || p.startsWith('/categories/')) return 'categories';
     if (p === '/occasions' || p.startsWith('/occasions/')) return 'occasions';
     if (p === '/gift-box' || p === '/build-a-box' || p.startsWith('/gift-box/')) return 'box-builder';
+    if (p === '/checkout' || p.startsWith('/checkout/')) return 'checkout';
+    if (p === '/track-order' || p.startsWith('/track-order/')) return 'track-order';
+    if (p === '/blogs' || p === '/blog' || p.startsWith('/blogs/')) return 'blogs';
+    if (p === '/faq' || p === '/faqs' || p.startsWith('/faq/')) return 'faq';
+    if (p === '/shipping' || p.startsWith('/shipping/')) return 'shipping';
     if (p === '/about' || p.startsWith('/about/')) return 'about';
     if (p === '/contact' || p.startsWith('/contact/')) return 'contact';
     if (p === '/privacy' || p.startsWith('/privacy/')) return 'privacy';
@@ -67,8 +80,6 @@ function AppContent() {
   // Search Modal State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const cleanWhatsApp = storeSettings.whatsappNumber.replace(/[^0-9]/g, '');
-
   // Synchronize initial product from URL if ?product=ID is present
   useEffect(() => {
     if (typeof window !== 'undefined' && products.length > 0 && !selectedProduct) {
@@ -93,6 +104,11 @@ function AppContent() {
         categories: '/categories',
         occasions: '/occasions',
         'box-builder': '/gift-box',
+        checkout: '/checkout',
+        'track-order': '/track-order',
+        blogs: '/blogs',
+        faq: '/faq',
+        shipping: '/shipping',
         about: '/about',
         contact: '/contact',
         privacy: '/privacy',
@@ -188,12 +204,25 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#faf8f5] text-stone-900 font-sans selection:bg-[#d4af37] selection:text-[#1b3022] overflow-x-hidden w-full max-w-full">
+      {/* Splash Screen */}
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+
       {/* Dynamic SEO, Canonical & Structured Data */}
       <SEOHead
         currentView={currentView}
         selectedProduct={selectedProduct}
         categoryFilter={categoryFilter}
         occasionFilter={occasionFilter}
+      />
+
+      {/* Announcement Bar */}
+      <AnnouncementBar
+        announcements={storeSettings.announcements}
+        onCtaClick={(cta) => {
+          if (cta === 'box-builder' || cta === 'shop' || cta === 'shipping') {
+            navigateToView(cta);
+          }
+        }}
       />
 
       {/* Global Navigation */}
@@ -257,6 +286,32 @@ function AppContent() {
           />
         )}
 
+        {currentView === 'checkout' && (
+          <CheckoutPage
+            setCurrentView={navigateToView}
+            onSelectProduct={handleSelectProduct}
+          />
+        )}
+
+        {currentView === 'track-order' && (
+          <TrackOrderPage setCurrentView={navigateToView} />
+        )}
+
+        {currentView === 'blogs' && (
+          <BlogsPage
+            setCurrentView={navigateToView}
+            onSelectCategory={handleSelectCategoryFilter}
+          />
+        )}
+
+        {currentView === 'faq' && (
+          <FAQPage setCurrentView={navigateToView} />
+        )}
+
+        {currentView === 'shipping' && (
+          <ShippingPage setCurrentView={navigateToView} />
+        )}
+
         {currentView === 'wishlist' && (
           <WishlistPage
             setCurrentView={navigateToView}
@@ -282,23 +337,8 @@ function AppContent() {
       {/* Global Footer */}
       <Footer setCurrentView={navigateToView} />
 
-      {/* Floating WhatsApp Concierge Button */}
-      <a
-        href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-          'Assalam-o-Alaikum MINAL KHAN! I would like personal assistance with gifts and delivery in Pakistan.'
-        )}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        id="floating-whatsapp-btn"
-        className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 group transition-all hover:scale-105 active:scale-95"
-        title="Chat on WhatsApp"
-        aria-label="Chat on WhatsApp"
-      >
-        <Phone className="w-6 h-6" />
-        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-bold text-xs pr-1">
-          WhatsApp Concierge
-        </span>
-      </a>
+      {/* Floating WhatsApp Help & Concierge */}
+      <FloatingWhatsAppHelp whatsappNumber={storeSettings.whatsappNumber} />
 
       {/* Search Modal */}
       <SearchModal

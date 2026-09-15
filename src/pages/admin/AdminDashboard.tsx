@@ -25,12 +25,23 @@ import {
   RefreshCw,
   LogOut,
   ShieldCheck,
+  Layers,
+  MessageSquareQuote,
+  BookOpen,
+  HelpCircle,
+  Truck,
+  Receipt,
+  Building2,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { Product, Category, Occasion, GiftBox, Order, StoreSettings } from '../../types';
+import { Product, Category, Occasion, GiftBox, Order, StoreSettings, OrderStatus } from '../../types';
 import { processAndCompressImage } from '../../utils/imageUtils';
+import { AdminHomepageTab } from './components/AdminHomepageTab';
+import { AdminReviewsTab } from './components/AdminReviewsTab';
+import { AdminBlogsTab } from './components/AdminBlogsTab';
+import { AdminFaqsTab } from './components/AdminFaqsTab';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -43,6 +54,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
     occasions,
     giftBoxes,
     orders,
+    reviews,
+    blogs,
+    faqs,
     storeSettings,
     saveProduct,
     deleteProductItem,
@@ -69,6 +83,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
     | 'orders'
     | 'customers'
     | 'inventory'
+    | 'homepage'
+    | 'reviews'
+    | 'blogs'
+    | 'faqs'
     | 'whatsapp'
     | 'store'
   >('overview');
@@ -93,10 +111,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   const boxImageInputRef = useRef<HTMLInputElement | null>(null);
 
   // --------------------------------------------------------------------------
-  // ORDERS FILTER STATE
+  // ORDERS FILTER & DETAIL STATE
   // --------------------------------------------------------------------------
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState('All');
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<OrderStatus>('New');
+  const [selectedTrackingNumber, setSelectedTrackingNumber] = useState('');
+  const [selectedCourierPartner, setSelectedCourierPartner] = useState('TCS');
+  const [selectedAdminNotes, setSelectedAdminNotes] = useState('');
+  const [viewReceiptModal, setViewReceiptModal] = useState<string | null>(null);
+
+  const handleSelectOrder = (ord: Order) => {
+    setSelectedOrder(ord);
+    setSelectedOrderStatus(ord.orderStatus);
+    setSelectedTrackingNumber(ord.trackingNumber || '');
+    setSelectedCourierPartner(ord.courierPartner || 'TCS');
+    setSelectedAdminNotes(ord.adminNotes || '');
+  };
 
   // --------------------------------------------------------------------------
   // STORE & WHATSAPP SETTINGS LOCAL FORM
@@ -347,9 +378,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
             { id: 'giftboxes', label: 'Gift Boxes (Builder)', icon: Gift, badge: giftBoxes.length },
             { id: 'orders', label: 'Orders & Dispatch', icon: ShoppingBag, badge: pendingOrdersCount },
             { id: 'inventory', label: 'Inventory & Stock', icon: Warehouse, badge: lowStockCount },
+            { id: 'homepage', label: 'Homepage & Banners', icon: Layers },
+            {
+              id: 'reviews',
+              label: 'Reviews & Feedback',
+              icon: MessageSquareQuote,
+              badge: reviews.filter((r) => !r.isApproved).length,
+            },
+            { id: 'blogs', label: 'Gifting Journal', icon: BookOpen, badge: blogs.length },
+            { id: 'faqs', label: 'FAQs Manager', icon: HelpCircle, badge: faqs.length },
             { id: 'customers', label: 'Customers', icon: Users },
             { id: 'whatsapp', label: 'WhatsApp Settings', icon: PhoneCall },
-            { id: 'store', label: 'Store & Delivery Settings', icon: Settings },
+            { id: 'store', label: 'Store & Advance Bank', icon: Settings },
           ].map((tab) => {
             const Icon = tab.icon;
             const isCurrent = activeTab === tab.id;
@@ -1455,39 +1495,180 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                     </div>
                   </div>
 
-                  {/* Order Status Control (Stock decrements automatically when Confirmed) */}
+                  {/* Advance Payment & Receipt Section */}
+                  <div className="bg-white p-4 rounded-xl border border-stone-200 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">
+                          Payment Policy & Method
+                        </span>
+                        <p className="font-bold text-stone-900 mt-0.5">
+                          {selectedOrder.paymentMethod || 'Advance Bank Transfer'}
+                        </p>
+                        <p className="text-[11px] text-emerald-700 font-semibold">
+                          Total: Rs. {selectedOrder.totalAmount?.toLocaleString()}
+                        </p>
+                      </div>
+
+                      {selectedOrder.paymentReceiptUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewReceiptModal(selectedOrder.paymentReceiptUrl || null)}
+                          className="px-3 py-1.5 bg-[#1b3022] text-[#d4af37] hover:bg-[#25422f] rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>View Payment Receipt</span>
+                        </button>
+                      ) : (
+                        <span className="text-[11px] px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg font-medium">
+                          No receipt uploaded
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Courier Partner, Tracking & Admin Dispatch */}
+                  <div className="bg-white p-4 rounded-xl border border-stone-200 text-xs space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-[#1b3022] uppercase tracking-wider text-[11px]">
+                      <Truck className="w-4 h-4 text-[#d4af37]" />
+                      <span>Dispatch & Courier Tracking</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-stone-600 font-semibold mb-1">
+                          Courier Partner
+                        </label>
+                        <select
+                          value={selectedCourierPartner}
+                          onChange={(e) => setSelectedCourierPartner(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#faf8f5] border border-stone-300 rounded-lg text-xs font-medium outline-none"
+                        >
+                          <option value="TCS">TCS Express</option>
+                          <option value="Leopard Courier">Leopard Courier</option>
+                          <option value="Trax Logistics">Trax Logistics</option>
+                          <option value="Call Courier">Call Courier</option>
+                          <option value="Rider">Rider</option>
+                          <option value="M&P Express">M&P Express</option>
+                          <option value="Swyft Logistics">Swyft Logistics</option>
+                          <option value="Bykea Express">Bykea Express (Same-Day)</option>
+                          <option value="In-House Delivery">In-House Luxury Hand Delivery</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-600 font-semibold mb-1">
+                          Consignment / Tracking Number
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedTrackingNumber}
+                          onChange={(e) => setSelectedTrackingNumber(e.target.value)}
+                          placeholder="e.g. 7709823412"
+                          className="w-full px-3 py-2 bg-[#faf8f5] border border-stone-300 rounded-lg text-xs font-mono outline-none"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-stone-600 font-semibold mb-1">
+                          Admin Internal Notes
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedAdminNotes}
+                          onChange={(e) => setSelectedAdminNotes(e.target.value)}
+                          placeholder="e.g. Payment verified from Meezan Bank, packed in emerald box..."
+                          className="w-full px-3 py-2 bg-[#faf8f5] border border-stone-300 rounded-lg text-xs outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Status Control & Actions */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-stone-200">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-bold text-stone-700">Update Order Status:</span>
+                    <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
+                      <span className="font-bold text-stone-700 whitespace-nowrap">Status:</span>
                       <select
-                        value={selectedOrder.orderStatus}
-                        onChange={async (e) => {
-                          const newSt = e.target.value as any;
-                          await updateOrderStatus(selectedOrder.id, newSt);
-                          setSelectedOrder({ ...selectedOrder, orderStatus: newSt });
-                        }}
+                        value={selectedOrderStatus}
+                        onChange={(e) => setSelectedOrderStatus(e.target.value as any)}
                         className="px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold"
                       >
                         <option value="New">New</option>
-                        <option value="Confirmed">Confirmed (Auto Decrements Stock)</option>
+                        <option value="Confirmed">Confirmed (Decrements Stock)</option>
                         <option value="Preparing">Preparing</option>
                         <option value="Ready">Ready for Dispatch</option>
                         <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
+                        <option value="Cancelled">Cancelled (Restores Stock)</option>
                       </select>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await updateOrderStatus(
+                            selectedOrder.id,
+                            selectedOrderStatus,
+                            selectedTrackingNumber,
+                            selectedCourierPartner,
+                            selectedAdminNotes
+                          );
+                          setSelectedOrder({
+                            ...selectedOrder,
+                            orderStatus: selectedOrderStatus,
+                            trackingNumber: selectedTrackingNumber,
+                            courierPartner: selectedCourierPartner,
+                            adminNotes: selectedAdminNotes,
+                          });
+                          alert('Order details and dispatch status updated successfully!');
+                        }}
+                        className="px-3.5 py-1.5 bg-[#1b3022] text-[#f7e7ce] rounded-lg text-xs font-bold hover:bg-[#25422f]"
+                      >
+                        Save Updates
+                      </button>
                     </div>
 
                     <a
                       href={`https://wa.me/${selectedOrder.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                        `Assalam-o-Alaikum ${selectedOrder.customerName}! This is MINAL KHAN regarding your gift order #${selectedOrder.orderNumber}.`
+                        `Assalam-o-Alaikum ${selectedOrder.customerName}! This is MINAL KHAN regarding your gift order #${selectedOrder.orderNumber}.${selectedTrackingNumber ? ` Your ${selectedCourierPartner} tracking number is: ${selectedTrackingNumber}` : ''}`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-1.5 bg-[#25D366] text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
-                      <span>Message Customer on WhatsApp</span>
+                      <span>WhatsApp Customer</span>
                     </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Receipt View Modal */}
+              {viewReceiptModal && (
+                <div
+                  className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs"
+                  onClick={() => setViewReceiptModal(null)}
+                >
+                  <div
+                    className="bg-white rounded-2xl max-w-lg w-full p-4 space-y-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+                      <h4 className="font-bold text-xs text-[#1b3022] uppercase tracking-wider">
+                        Advance Payment Receipt Screenshot
+                      </h4>
+                      <button
+                        onClick={() => setViewReceiptModal(null)}
+                        className="text-stone-400 hover:text-stone-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-[70vh] overflow-auto rounded-xl bg-stone-100 flex items-center justify-center">
+                      <img
+                        src={viewReceiptModal}
+                        alt="Payment Receipt"
+                        className="w-full h-auto object-contain rounded-xl"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1499,7 +1680,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                   .map((ord) => (
                     <div
                       key={ord.id}
-                      onClick={() => setSelectedOrder(ord)}
+                      onClick={() => handleSelectOrder(ord)}
                       className="p-4 bg-[#faf8f5] hover:bg-stone-100 rounded-xl border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 cursor-pointer transition-all"
                     >
                       <div className="space-y-1">
@@ -1833,6 +2014,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                   />
                 </div>
 
+                {/* Advance Bank Account Details */}
+                <div className="p-4 bg-[#faf8f5] rounded-2xl border border-[#d4af37]/40 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-[#1b3022] text-xs uppercase tracking-wider">
+                    <Building2 className="w-4 h-4 text-[#d4af37]" />
+                    <span>Advance Payment Bank Account Details (Displayed at Checkout)</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 leading-relaxed">
+                    MINAL KHAN strictly operates on Advance Payment (No Cash on Delivery). Customers will transfer to this bank account during checkout.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsForm.bankDetails?.bankName || ''}
+                        onChange={(e) =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            bankDetails: {
+                              ...settingsForm.bankDetails,
+                              bankName: e.target.value,
+                              accountTitle: settingsForm.bankDetails?.accountTitle || 'MINAL KHAN',
+                              accountNumber: settingsForm.bankDetails?.accountNumber || '',
+                              iban: settingsForm.bankDetails?.iban || '',
+                              branch: settingsForm.bankDetails?.branch || 'DHA Lahore',
+                              instructions: settingsForm.bankDetails?.instructions || 'Please transfer advance payment and share receipt with your Order Number.',
+                              receiptRequired: true,
+                              isActive: true,
+                            },
+                          })
+                        }
+                        placeholder="Meezan Bank / Bank Alfalah"
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsForm.bankDetails?.accountTitle || ''}
+                        onChange={(e) =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            bankDetails: {
+                              ...settingsForm.bankDetails!,
+                              accountTitle: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="MINAL KHAN"
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsForm.bankDetails?.accountNumber || ''}
+                        onChange={(e) =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            bankDetails: {
+                              ...settingsForm.bankDetails!,
+                              accountNumber: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="01010101010101"
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl outline-none font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        IBAN
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsForm.bankDetails?.iban || ''}
+                        onChange={(e) =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            bankDetails: {
+                              ...settingsForm.bankDetails!,
+                              iban: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="PK00MEZN0000000000000000"
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block font-semibold text-stone-700 mb-1">
+                        Payment Instructions for Customer
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={settingsForm.bankDetails?.instructions || ''}
+                        onChange={(e) =>
+                          setSettingsForm({
+                            ...settingsForm,
+                            bankDetails: {
+                              ...settingsForm.bankDetails!,
+                              instructions: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Please transfer the exact amount and upload your payment receipt or send it on WhatsApp..."
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-2">
                   <button
                     type="submit"
@@ -1844,6 +2150,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
               </form>
             </div>
           )}
+
+          {/* =========================================================================
+              11. HOMEPAGE LAYOUT & BANNERS TAB
+          ========================================================================= */}
+          {activeTab === 'homepage' && <AdminHomepageTab />}
+
+          {/* =========================================================================
+              12. REVIEWS & FEEDBACK TAB
+          ========================================================================= */}
+          {activeTab === 'reviews' && <AdminReviewsTab />}
+
+          {/* =========================================================================
+              13. BLOGGING & GIFTING JOURNAL TAB
+          ========================================================================= */}
+          {activeTab === 'blogs' && <AdminBlogsTab />}
+
+          {/* =========================================================================
+              14. FAQS MANAGER TAB
+          ========================================================================= */}
+          {activeTab === 'faqs' && <AdminFaqsTab />}
         </div>
       </div>
     </div>
