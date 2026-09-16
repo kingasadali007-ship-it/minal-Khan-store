@@ -34,7 +34,6 @@ import {
   INITIAL_CATEGORIES,
   INITIAL_OCCASIONS,
   INITIAL_GIFT_BOXES,
-  INITIAL_PRODUCTS,
   INITIAL_REVIEWS,
   INITIAL_BLOGS,
   INITIAL_FAQS,
@@ -53,6 +52,9 @@ interface StoreContextType {
   blogs: BlogPost[];
   faqs: FAQItem[];
   loading: boolean;
+  firestoreError: string | null;
+  quotaExceeded: boolean;
+  firestoreUpgradeUrl: string;
   
   // Cart
   cart: CartItem[];
@@ -151,7 +153,19 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userProfile, updateCustomerProfile, isAdmin, loading: authLoading } = useAuth();
 
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  // Products state - initialized strictly empty. Firestore is the single authoritative source of truth.
+  // Never falls back to demo/static products.
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Cleanup legacy localStorage cache if present to prevent stale data conflicts
+  useEffect(() => {
+    try {
+      localStorage.removeItem('minal_products_cache');
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const [categories, setCategories] = useState<Category[]>(() =>
     INITIAL_CATEGORIES.map((c, i) => ({ ...c, id: `cat_${i + 1}` }))
   );
@@ -167,6 +181,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [blogs, setBlogs] = useState<BlogPost[]>(INITIAL_BLOGS);
   const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
   const [loading, setLoading] = useState(true);
+  const [firestoreError, setFirestoreError] = useState<string | null>(null);
+
+  const quotaExceeded = Boolean(
+    firestoreError &&
+      (firestoreError.toLowerCase().includes('quota') ||
+        firestoreError.toLowerCase().includes('resource-exhausted') ||
+        firestoreError.toLowerCase().includes('read units'))
+  );
+
+  const firestoreUpgradeUrl =
+    'https://console.firebase.google.com/project/gen-lang-client-0020252580/firestore/databases/ai-studio-a24d489b-c489-4454-b16b-9da9c19c4374/data?openUpgradeDialog=true';
 
   // Cart state persisted locally
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -214,7 +239,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsub();
   }, []);
 
-  // Real-time listener: Products
+  // Real-time listener: Products (Single authoritative source: Firestore products collection)
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, 'products'),
@@ -223,13 +248,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         snap.forEach((docSnap) => {
           prods.push({ id: docSnap.id, ...(docSnap.data() as Omit<Product, 'id'>) });
         });
-        setProducts(prods.length > 0 ? prods : INITIAL_PRODUCTS);
+        setProducts(prods);
+        setFirestoreError(null);
         setLoading(false);
       },
       (error) => {
-        console.warn('Products listener notice:', error.message);
-        setProducts(INITIAL_PRODUCTS);
+        console.warn('Firestore products listener notice:', error.message);
+        setFirestoreError(error.message || 'Error connecting to Firestore products collection');
         setLoading(false);
+        // Retain last valid products in memory; never replace with demo/fallback items
       }
     );
     return () => unsub();
@@ -410,25 +437,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [authLoading, isAdmin, user?.uid]);
 
-  // Seed default categories, occasions, base boxes, products, reviews, blogs, faqs if collections are empty or on force reset
+  // Manual administrative seed function (DO NOT run automatically on render)
+  // NOTE: Products are strictly excluded - real Firestore catalog is never overwritten or seeded with demo items.
   const seedInitialDataIfEmpty = async (forceReset = false) => {
     try {
-      const prodSnap = await getDocs(collection(db, 'products'));
-      if (prodSnap.empty || forceReset) {
-        const batch = writeBatch(db);
-        INITIAL_PRODUCTS.forEach((p) => {
-          const { id, ...rest } = p;
-          const docRef = doc(collection(db, 'products'));
-          batch.set(docRef, {
-            ...rest,
-            id: docRef.id,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        });
-        await batch.commit();
-      }
-
       const catSnap = await getDocs(collection(db, 'categories'));
       if (catSnap.empty || forceReset) {
         const batch = writeBatch(db);
@@ -502,10 +514,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Seed operation notice:', err);
     }
   };
-
-  useEffect(() => {
-    seedInitialDataIfEmpty();
-  }, []);
 
   // Cart operations
   const addToCart = (product: Product, quantity = 1) => {
@@ -766,9 +774,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         cleanProduct.salePrice = Number(product.salePrice);
       }
       await setDoc(docRef, cleanProduct);
+      setProducts((prev) => [cleanProduct as Product, ...prev.filter((p) => p.id !== docRef.id)]);
       return docRef.id;
     } catch (err) {
+      console.warn('Firestore addProduct error:', err);
       handleFirestoreError(err, OperationType.CREATE, 'products');
+      throw err;
     }
   };
 
@@ -784,8 +795,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
       await setDoc(docRef, cleanUpdates, { merge: true });
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...cleanUpdates } : p)));
     } catch (err) {
+      console.warn('Firestore updateProduct error:', err);
       handleFirestoreError(err, OperationType.UPDATE, `products/${id}`);
+      throw err;
     }
   };
 
@@ -794,7 +808,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await deleteDoc(doc(db, 'products', id));
       setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
+      console.warn('Firestore deleteProduct error:', err);
       handleFirestoreError(err, OperationType.DELETE, `products/${id}`);
+      throw err;
     }
   };
 
@@ -1102,6 +1118,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         blogs,
         faqs,
         loading,
+        firestoreError,
+        quotaExceeded,
+        firestoreUpgradeUrl,
         cart,
         addToCart,
         addCustomBoxToCart,

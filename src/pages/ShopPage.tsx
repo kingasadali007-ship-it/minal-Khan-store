@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, ArrowUpDown, X, SlidersHorizontal, Gift } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, X, SlidersHorizontal, Gift, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ProductCard } from '../components/ProductCard';
@@ -20,7 +20,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   initialCategoryFilter,
   initialOccasionFilter,
 }) => {
-  const { products, categories, occasions } = useStore();
+  const { products, categories, occasions, firestoreError, loading } = useStore();
   const { isUrdu, t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -346,28 +346,47 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 />
               ))}
             </div>
+          ) : firestoreError && activeProducts.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 border border-rose-200 text-center space-y-4">
+              <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
+              <h3 className="font-display text-lg font-bold text-stone-900">
+                Unable to load products. Please try again.
+              </h3>
+              <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                {firestoreError.toLowerCase().includes('quota') || firestoreError.toLowerCase().includes('resource-exhausted')
+                  ? 'The database read limit has temporarily been reached. Please try again shortly or contact the store administrator.'
+                  : 'A connection issue occurred while loading products from the database.'}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-5 py-2.5 bg-[#1b3022] text-[#f7e7ce] text-xs font-semibold rounded-lg hover:bg-[#25422f] inline-flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+            </div>
           ) : (
             <div className="bg-white rounded-2xl p-12 border border-dashed border-[#d4af37]/40 text-center space-y-4">
               <Gift className="w-12 h-12 text-[#d4af37] mx-auto opacity-70" />
               <h3 className="font-display text-lg font-bold text-stone-900">
-                {activeProducts.length === 0 ? 'No Products in Database Yet' : 'No Gifts Match Filters'}
+                {activeProducts.length === 0 ? 'No Products in Catalog Yet' : 'No Gifts Match Filters'}
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
                 {activeProducts.length === 0
-                  ? 'The product catalog starts clean. The store owner can add products from the Admin Panel.'
+                  ? 'Products added in the Admin Panel will appear here automatically.'
                   : 'Try clearing your search query or adjusting your category and price range filters.'}
               </p>
               {activeProducts.length === 0 ? (
                 <button
                   onClick={() => setCurrentView('admin')}
-                  className="px-5 py-2.5 bg-[#1b3022] text-[#f7e7ce] text-xs font-semibold rounded-lg hover:bg-[#25422f]"
+                  className="px-5 py-2.5 bg-[#1b3022] text-[#f7e7ce] text-xs font-semibold rounded-lg hover:bg-[#25422f] cursor-pointer"
                 >
                   Go to Admin Panel to Add Products
                 </button>
               ) : (
                 <button
                   onClick={clearAllFilters}
-                  className="px-4 py-2 bg-[#faf8f5] border border-stone-300 text-stone-700 text-xs font-semibold rounded-lg hover:bg-stone-100"
+                  className="px-4 py-2 bg-[#faf8f5] border border-stone-300 text-stone-700 text-xs font-semibold rounded-lg hover:bg-stone-100 cursor-pointer"
                 >
                   Clear All Filters
                 </button>

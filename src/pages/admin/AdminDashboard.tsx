@@ -58,6 +58,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
     blogs,
     faqs,
     storeSettings,
+    firestoreError,
+    quotaExceeded,
+    firestoreUpgradeUrl,
     saveProduct,
     deleteProductItem,
     saveCategory,
@@ -100,6 +103,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   const [productSearch, setProductSearch] = useState('');
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [productImageUploading, setProductImageUploading] = useState(false);
+  const [productSaving, setProductSaving] = useState(false);
+  const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // --------------------------------------------------------------------------
@@ -274,7 +279,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   };
 
   // --------------------------------------------------------------------------
-  // PRODUCT SAVE HANDLER
+  // PRODUCT SAVE HANDLER (PERSISTS DIRECTLY TO FIRESTORE)
   // --------------------------------------------------------------------------
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,29 +288,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
       return;
     }
 
+    setProductSaving(true);
+    setProductSaveError(null);
+
     try {
       const prodPayload: Omit<Product, 'id'> = {
-        name: editingProduct.name,
-        nameUrdu: editingProduct.nameUrdu || '',
+        name: editingProduct.name.trim(),
+        nameUrdu: editingProduct.nameUrdu?.trim() || '',
         price: Number(editingProduct.price) || 0,
         salePrice: editingProduct.salePrice ? Number(editingProduct.salePrice) : undefined,
-        description: editingProduct.description || '',
-        descriptionUrdu: editingProduct.descriptionUrdu || '',
+        description: editingProduct.description?.trim() || '',
+        descriptionUrdu: editingProduct.descriptionUrdu?.trim() || '',
         category: editingProduct.category || categories[0]?.name || 'Gift Boxes',
         occasion: editingProduct.occasion || occasions[0]?.name || 'Birthday',
-        imageUrl: editingProduct.imageUrl || '',
+        imageUrl: editingProduct.imageUrl?.trim() || '',
         stock: editingProduct.stock !== undefined ? Number(editingProduct.stock) : 10,
         isActive: editingProduct.isActive !== undefined ? editingProduct.isActive : true,
         isFeatured: editingProduct.isFeatured || false,
-        sku: editingProduct.sku || `MK-${Math.floor(1000 + Math.random() * 9000)}`,
+        sku: editingProduct.sku?.trim() || `MK-${Math.floor(1000 + Math.random() * 9000)}`,
       };
 
       await saveProduct(prodPayload, editingProduct.id);
       setEditingProduct(null);
-      alert('Product saved successfully to database!');
-    } catch (err) {
-      console.error('Error saving product:', err);
-      alert('Failed to save product in database.');
+      alert('Product saved and verified in Firestore database!');
+    } catch (err: any) {
+      console.warn('Notice saving product to Firestore:', err);
+      const detail = err?.code ? `[${err.code}] ${err.message}` : (err?.message || String(err));
+      setProductSaveError(detail);
+      alert(`Failed to save product in database: ${detail}`);
+    } finally {
+      setProductSaving(false);
     }
   };
 
@@ -320,7 +332,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
       setTimeout(() => setSettingsSaved(false), 3000);
       alert('Store settings & WhatsApp number updated live across the entire website!');
     } catch (err) {
-      console.error('Error saving settings:', err);
+      console.warn('Notice saving settings:', err);
       alert('Could not update store settings.');
     }
   };
@@ -365,6 +377,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
           </button>
         </div>
       </header>
+
+      {/* Firestore Quota Notice Banner */}
+      {quotaExceeded && (
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4">
+          <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="space-y-1">
+              <div className="font-bold text-amber-900 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Firestore Daily Free Read Limit Reached (resource-exhausted)</span>
+              </div>
+              <p className="text-amber-800 leading-relaxed">
+                The database free tier daily read quota (50,000 units) has been reached. 
+                Product creates, updates, and deletes <strong>continue to execute and persist directly to Firestore</strong>, and will be saved in your database. 
+                To remove read quota throttling permanently, you can upgrade to the Blaze pay-as-you-go plan in Firebase Console.
+              </p>
+            </div>
+            <a
+              href={firestoreUpgradeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 px-4 py-2 bg-[#1b3022] text-[#f7e7ce] rounded-xl font-bold hover:bg-[#25422f] transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <span>Upgrade in Firebase</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Admin Main Layout */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -608,6 +648,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                   </div>
 
                   <form onSubmit={handleSaveProductSubmit} className="space-y-4 text-xs">
+                    {productSaveError && (
+                      <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-700 text-xs font-mono">
+                        <strong>Database Error:</strong> {productSaveError}
+                      </div>
+                    )}
+
                     {/* Image Upload Row */}
                     <div>
                       <label className="block font-semibold text-stone-700 mb-1">
@@ -845,16 +891,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                     <div className="flex justify-end gap-2 pt-3 border-t border-stone-200">
                       <button
                         type="button"
-                        onClick={() => setEditingProduct(null)}
-                        className="px-4 py-2 bg-stone-200 text-stone-700 rounded-lg font-semibold"
+                        onClick={() => {
+                          setEditingProduct(null);
+                          setProductSaveError(null);
+                        }}
+                        disabled={productSaving}
+                        className="px-4 py-2 bg-stone-200 text-stone-700 rounded-lg font-semibold disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2 bg-[#1b3022] hover:bg-[#25422f] text-white rounded-lg font-bold"
+                        disabled={productSaving}
+                        className="px-6 py-2 bg-[#1b3022] hover:bg-[#25422f] text-white rounded-lg font-bold flex items-center gap-2 disabled:opacity-50"
                       >
-                        Save Product
+                        {productSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{productSaving ? 'Saving to Database...' : 'Save Product'}</span>
                       </button>
                     </div>
                   </form>
@@ -887,8 +939,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-200">
-                    {products
-                      .filter((p) => {
+                    {products.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-stone-500">
+                          {firestoreError ? (
+                            <div className="space-y-2">
+                              <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
+                              <p className="font-semibold text-stone-800">Unable to load products from database</p>
+                              <p className="text-xs text-stone-400 max-w-md mx-auto">{firestoreError}</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Package className="w-8 h-8 text-stone-300 mx-auto" />
+                              <p className="font-semibold text-stone-700">No products found in database</p>
+                              <p className="text-xs text-stone-400">Click &quot;Add New Product&quot; above to create the first product.</p>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ) : products.filter((p) => {
                         if (!productSearch) return true;
                         const q = productSearch.toLowerCase();
                         return (
@@ -896,8 +965,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                           p.category.toLowerCase().includes(q) ||
                           p.sku?.toLowerCase().includes(q)
                         );
-                      })
-                      .map((prod) => (
+                      }).length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-stone-400">
+                          No products match &quot;{productSearch}&quot;.
+                        </td>
+                      </tr>
+                    ) : (
+                      products
+                        .filter((p) => {
+                          if (!productSearch) return true;
+                          const q = productSearch.toLowerCase();
+                          return (
+                            p.name.toLowerCase().includes(q) ||
+                            p.category.toLowerCase().includes(q) ||
+                            p.sku?.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((prod) => (
                         <tr key={prod.id} className="hover:bg-stone-50">
                           <td className="p-3 flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-stone-100 overflow-hidden shrink-0 border border-stone-200">
@@ -959,8 +1044,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                             </button>
                             <button
                               onClick={async () => {
-                                if (confirm(`Delete "${prod.name}" permanently?`)) {
-                                  await deleteProductItem(prod.id);
+                                if (confirm(`Delete "${prod.name}" permanently from database?`)) {
+                                  try {
+                                    await deleteProductItem(prod.id);
+                                    alert(`"${prod.name}" deleted successfully.`);
+                                  } catch (err: any) {
+                                    console.warn('Notice deleting product from Firestore:', err);
+                                    const detail = err?.code ? `[${err.code}] ${err.message}` : (err?.message || String(err));
+                                    alert(`Failed to delete product: ${detail}`);
+                                  }
                                 }
                               }}
                               className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
@@ -970,7 +1062,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )))}
                   </tbody>
                 </table>
               </div>
