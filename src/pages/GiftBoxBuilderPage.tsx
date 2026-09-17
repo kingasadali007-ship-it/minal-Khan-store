@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Gift,
   Plus,
@@ -33,6 +33,16 @@ export const GiftBoxBuilderPage: React.FC<GiftBoxBuilderPageProps> = ({
   // Step 1: Base box selection
   const activeBoxes = useMemo(() => giftBoxes.filter((b) => b.isActive), [giftBoxes]);
   const [selectedBox, setSelectedBox] = useState<GiftBox | null>(() => activeBoxes[0] || null);
+
+  useEffect(() => {
+    if (activeBoxes.length > 0) {
+      if (!selectedBox || !activeBoxes.some((b) => b.id === selectedBox.id)) {
+        setSelectedBox(activeBoxes[0]);
+      }
+    } else if (selectedBox !== null) {
+      setSelectedBox(null);
+    }
+  }, [activeBoxes, selectedBox]);
 
   // Step 2: Selected items inside box
   const [boxItems, setBoxItems] = useState<CustomGiftBoxItem[]>([]);

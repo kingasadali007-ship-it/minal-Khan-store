@@ -32,6 +32,9 @@ import {
   Truck,
   Receipt,
   Building2,
+  Loader2,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
@@ -61,6 +64,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
     firestoreError,
     quotaExceeded,
     firestoreUpgradeUrl,
+    firestoreConnectionStatus,
+    isTemporarilyUnavailable,
+    connectionNotice,
     saveProduct,
     deleteProductItem,
     saveCategory,
@@ -113,7 +119,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
   const [editingOccasion, setEditingOccasion] = useState<Partial<Occasion> | null>(null);
   const [editingBox, setEditingBox] = useState<Partial<GiftBox> | null>(null);
+  const [deletingBoxId, setDeletingBoxId] = useState<string | null>(null);
+  const [savingBox, setSavingBox] = useState(false);
+  const [boxActionMessage, setBoxActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const boxImageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleDeleteGiftBox = async (box: GiftBox) => {
+    if (!box || !box.id) {
+      console.error('Delete gift box error: invalid or missing box ID', box);
+      setBoxActionMessage({
+        type: 'error',
+        text: 'Error: Cannot delete box because it does not have a valid document ID.',
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete this gift box?\n\n"${box.name}"\n\nThis will permanently delete this packaging item from the Firestore database.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingBoxId(box.id);
+      setBoxActionMessage(null);
+      // Wait for the Firestore delete operation to complete successfully
+      await deleteGiftBoxItem(box.id);
+      // Only after successful deletion, show success confirmation
+      setBoxActionMessage({
+        type: 'success',
+        text: 'Gift box deleted successfully.',
+      });
+      setTimeout(() => {
+        setBoxActionMessage((prev) => (prev?.text === 'Gift box deleted successfully.' ? null : prev));
+      }, 4500);
+    } catch (err: any) {
+      console.error('Failed to delete gift box from Firestore:', err);
+      const errMsg = err?.message || 'Database error occurred while deleting.';
+      setBoxActionMessage({
+        type: 'error',
+        text: `Failed to delete gift box: ${errMsg}`,
+      });
+      alert(`Could not delete gift box: ${errMsg}`);
+    } finally {
+      setDeletingBoxId(null);
+    }
+  };
 
   // --------------------------------------------------------------------------
   // ORDERS FILTER & DETAIL STATE
@@ -351,6 +401,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
         </div>
 
         <div className="flex items-center gap-3 text-xs">
+          {/* Admin Connection Status Indicator */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-black/30 border border-white/10 rounded-lg text-[11px]"
+            title="Real-time Cloud Firestore connection state"
+          >
+            <span className="text-stone-300 font-medium">Firestore:</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                firestoreConnectionStatus === 'ONLINE'
+                  ? 'bg-emerald-400'
+                  : firestoreConnectionStatus === 'CONNECTING'
+                  ? 'bg-amber-400 animate-pulse'
+                  : 'bg-rose-400'
+              }`}
+            />
+            <span
+              className={`font-semibold ${
+                firestoreConnectionStatus === 'ONLINE'
+                  ? 'text-emerald-300'
+                  : firestoreConnectionStatus === 'CONNECTING'
+                  ? 'text-amber-300'
+                  : 'text-rose-300'
+              }`}
+            >
+              {firestoreConnectionStatus}
+            </span>
+          </div>
+
           {user?.email?.toLowerCase() === 'kingasadali007@gmail.com' ? (
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/70 border border-emerald-500/30 rounded-lg text-[11px] text-emerald-300 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -402,6 +480,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
               <span>Upgrade in Firebase</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* Firestore Temporary Unavailable / Offline Mode Notice Banner */}
+      {isTemporarilyUnavailable && !quotaExceeded && (
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4">
+          <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="space-y-1">
+              <div className="font-bold text-amber-900 flex items-center gap-2">
+                <WifiOff className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Firestore Operating in Offline Mode (Connection Reconnecting)</span>
+              </div>
+              <p className="text-amber-800 leading-relaxed">
+                Could not reach Cloud Firestore backend directly. The client is currently operating in offline mode with cached data intact. 
+                Product catalog and packaging are fully preserved, and the app will reconnect automatically when the network stabilizes.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -1326,28 +1422,74 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                       dimensions: 'Medium Box',
                     })
                   }
-                  className="px-3.5 py-2 bg-[#1b3022] text-white rounded-xl text-xs font-semibold flex items-center gap-1"
+                  className="px-3.5 py-2 bg-[#1b3022] text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Gift Box</span>
                 </button>
               </div>
 
+              {boxActionMessage && (
+                <div
+                  className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+                    boxActionMessage.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : 'bg-rose-50 border-rose-200 text-rose-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {boxActionMessage.type === 'success' ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{boxActionMessage.text}</span>
+                  </div>
+                  <button
+                    onClick={() => setBoxActionMessage(null)}
+                    className="text-stone-400 hover:text-stone-700 p-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {editingBox && (
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!editingBox.name || editingBox.price === undefined) return;
-                    await saveGiftBox({
-                      name: editingBox.name,
-                      nameUrdu: editingBox.nameUrdu || '',
-                      price: Number(editingBox.price) || 0,
-                      dimensions: editingBox.dimensions || '',
-                      description: editingBox.description || '',
-                      imageUrl: editingBox.imageUrl || '',
-                      isActive: editingBox.isActive ?? true,
-                    }, editingBox.id);
-                    setEditingBox(null);
+                    try {
+                      setSavingBox(true);
+                      await saveGiftBox(
+                        {
+                          name: editingBox.name,
+                          nameUrdu: editingBox.nameUrdu || '',
+                          price: Number(editingBox.price) || 0,
+                          dimensions: editingBox.dimensions || '',
+                          description: editingBox.description || '',
+                          imageUrl: editingBox.imageUrl || '',
+                          isActive: editingBox.isActive ?? true,
+                        },
+                        editingBox.id
+                      );
+                      setBoxActionMessage({
+                        type: 'success',
+                        text: editingBox.id ? 'Gift box updated successfully.' : 'Gift box created successfully.',
+                      });
+                      setTimeout(() => {
+                        setBoxActionMessage((prev) => (prev?.text?.includes('successfully') ? null : prev));
+                      }, 4500);
+                      setEditingBox(null);
+                    } catch (err: any) {
+                      console.error('Failed to save gift box to Firestore:', err);
+                      setBoxActionMessage({
+                        type: 'error',
+                        text: `Failed to save gift box: ${err?.message || 'Database error'}`,
+                      });
+                    } finally {
+                      setSavingBox(false);
+                    }
                   }}
                   className="p-4 bg-[#faf8f5] rounded-xl border border-stone-300 space-y-3 text-xs"
                 >
@@ -1399,7 +1541,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                       <button
                         type="button"
                         onClick={() => boxImageInputRef.current?.click()}
-                        className="px-3 py-1.5 bg-white border border-stone-300 rounded text-xs font-semibold"
+                        className="px-3 py-1.5 bg-white border border-stone-300 rounded text-xs font-semibold cursor-pointer"
                       >
                         Choose Photo
                       </button>
@@ -1417,67 +1559,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
                     <button
                       type="button"
                       onClick={() => setEditingBox(null)}
-                      className="px-3 py-1.5 bg-stone-200 rounded-lg font-semibold"
+                      className="px-3 py-1.5 bg-stone-200 rounded-lg font-semibold cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-1.5 bg-[#1b3022] text-white rounded-lg font-bold"
+                      disabled={savingBox}
+                      className="px-4 py-1.5 bg-[#1b3022] text-white rounded-lg font-bold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                     >
-                      Save Box
+                      {savingBox && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{editingBox.id ? 'Update Box' : 'Save Box'}</span>
                     </button>
                   </div>
                 </form>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {giftBoxes.map((box) => (
-                  <div
-                    key={box.id}
-                    className="p-4 rounded-xl border border-stone-200 bg-[#faf8f5] flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border border-stone-200 shrink-0">
-                        {box.imageUrl ? (
-                          <img src={box.imageUrl} alt={box.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-stone-300">
-                            <Gift className="w-5 h-5" />
-                          </div>
-                        )}
+              {giftBoxes.length === 0 ? (
+                <div className="p-8 bg-[#faf8f5] border border-dashed border-stone-300 rounded-xl text-center space-y-2">
+                  <Gift className="w-8 h-8 text-stone-300 mx-auto" />
+                  <p className="font-semibold text-stone-700 text-sm">No Gift Boxes in catalog</p>
+                  <p className="text-xs text-stone-400">Click &quot;Add Gift Box&quot; above to create base packaging options.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {giftBoxes.map((box) => (
+                    <div
+                      key={box.id}
+                      className="p-4 rounded-xl border border-stone-200 bg-[#faf8f5] flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border border-stone-200 shrink-0">
+                          {box.imageUrl ? (
+                            <img src={box.imageUrl} alt={box.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                              <Gift className="w-5 h-5" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs text-stone-900 truncate">{box.name}</h4>
+                          <span className="text-xs font-semibold text-[#1b3022]">
+                            Rs. {box.price.toLocaleString()}
+                          </span>
+                          {box.dimensions && (
+                            <span className="text-[10px] text-stone-400 block truncate">{box.dimensions}</span>
+                          )}
+                          <span
+                            className="text-[9px] text-stone-400 font-mono block truncate"
+                            title={`Firestore Doc ID: ${box.id}`}
+                          >
+                            ID: {box.id}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-stone-900">{box.name}</h4>
-                        <span className="text-xs font-semibold text-[#1b3022]">
-                          Rs. {box.price.toLocaleString()}
-                        </span>
-                        {box.dimensions && (
-                          <span className="text-[10px] text-stone-400 block">{box.dimensions}</span>
-                        )}
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingBox(box)}
+                          className="p-1.5 text-stone-500 hover:text-stone-900 cursor-pointer"
+                          title="Edit Box"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingBoxId === box.id}
+                          onClick={() => handleDeleteGiftBox(box)}
+                          className="p-1.5 text-stone-400 hover:text-rose-600 disabled:opacity-50 cursor-pointer transition-colors"
+                          title={`Delete ${box.name}`}
+                          id={`btn-delete-gift-box-${box.id}`}
+                        >
+                          {deletingBoxId === box.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setEditingBox(box)}
-                        className="p-1.5 text-stone-500 hover:text-stone-900"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm(`Delete box "${box.name}"?`)) {
-                            await deleteGiftBoxItem(box.id);
-                          }
-                        }}
-                        className="p-1.5 text-stone-400 hover:text-rose-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

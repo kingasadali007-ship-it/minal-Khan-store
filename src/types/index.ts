@@ -55,6 +55,7 @@ export interface Occasion {
 export interface GiftBox {
   id: string;
   name: string;
+  nameUrdu?: string;
   price: number;
   description?: string;
   color?: string;

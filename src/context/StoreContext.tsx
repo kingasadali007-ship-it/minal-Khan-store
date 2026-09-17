@@ -33,13 +33,14 @@ import {
   DEFAULT_STORE_SETTINGS,
   INITIAL_CATEGORIES,
   INITIAL_OCCASIONS,
-  INITIAL_GIFT_BOXES,
   INITIAL_REVIEWS,
   INITIAL_BLOGS,
   INITIAL_FAQS,
   DEFAULT_HOMEPAGE_SECTIONS,
 } from '../utils/seedData';
 import { useAuth } from './AuthContext';
+
+export type FirestoreConnectionStatus = 'ONLINE' | 'CONNECTING' | 'OFFLINE / TEMPORARILY UNAVAILABLE';
 
 interface StoreContextType {
   products: Product[];
@@ -55,6 +56,9 @@ interface StoreContextType {
   firestoreError: string | null;
   quotaExceeded: boolean;
   firestoreUpgradeUrl: string;
+  firestoreConnectionStatus: FirestoreConnectionStatus;
+  isTemporarilyUnavailable: boolean;
+  connectionNotice: string | null;
   
   // Cart
   cart: CartItem[];
@@ -172,9 +176,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [occasions, setOccasions] = useState<Occasion[]>(() =>
     INITIAL_OCCASIONS.map((o, i) => ({ ...o, id: `occ_${i + 1}` }))
   );
-  const [giftBoxes, setGiftBoxes] = useState<GiftBox[]>(() =>
-    INITIAL_GIFT_BOXES.map((b, i) => ({ ...b, id: `box_${i + 1}` }))
-  );
+  // Gift Boxes state - single source of truth: Firestore gift_boxes collection
+  // Caches valid documents in localStorage so UI remains functional even if daily read quotas are throttled
+  const [giftBoxes, setGiftBoxes] = useState<GiftBox[]>(() => {
+    try {
+      const saved = localStorage.getItem('minal_gift_boxes_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Exclude any legacy dummy items with IDs like box_1, box_2, box_3
+          return parsed.filter((b: GiftBox) => b.id && !['box_1', 'box_2', 'box_3'].includes(b.id));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
   const [orders, setOrders] = useState<Order[]>([]);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
   const [reviews, setReviews] = useState<CustomerReview[]>(INITIAL_REVIEWS);
@@ -182,6 +200,60 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
   const [loading, setLoading] = useState(true);
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  const [firestoreConnectionStatus, setFirestoreConnectionStatus] = useState<FirestoreConnectionStatus>('CONNECTING');
+  const [connectionNotice, setConnectionNotice] = useState<string | null>(null);
+
+  const isTemporarilyUnavailable = firestoreConnectionStatus === 'OFFLINE / TEMPORARILY UNAVAILABLE';
+
+  const markOnline = () => {
+    setFirestoreConnectionStatus('ONLINE');
+    setConnectionNotice(null);
+  };
+
+  const handleListenerNotice = (colName: string, error: any) => {
+    const errMsg = error?.message || String(error);
+    const errCode = error?.code || '';
+    const isUnavailable =
+      errCode === 'unavailable' ||
+      errMsg.toLowerCase().includes('unavailable') ||
+      errMsg.toLowerCase().includes('could not reach cloud firestore') ||
+      errMsg.toLowerCase().includes('transport errored') ||
+      errMsg.toLowerCase().includes('offline mode');
+
+    const isQuota =
+      errCode === 'resource-exhausted' ||
+      errMsg.toLowerCase().includes('resource-exhausted') ||
+      errMsg.toLowerCase().includes('quota') ||
+      errMsg.toLowerCase().includes('read units');
+
+    if (isQuota) {
+      setFirestoreError(errMsg);
+    } else if (isUnavailable) {
+      setFirestoreConnectionStatus('OFFLINE / TEMPORARILY UNAVAILABLE');
+      setConnectionNotice(
+        'Firestore backend is currently unreachable. Operating in offline cache mode — active catalog data is preserved.'
+      );
+    } else {
+      console.warn(`Firestore ${colName} listener notice:`, errMsg);
+    }
+  };
+
+  // Listen to browser network changes to anticipate Firestore connectivity
+  useEffect(() => {
+    const handleOnline = () => {
+      setFirestoreConnectionStatus((prev) => (prev === 'OFFLINE / TEMPORARILY UNAVAILABLE' ? 'CONNECTING' : prev));
+    };
+    const handleOffline = () => {
+      setFirestoreConnectionStatus('OFFLINE / TEMPORARILY UNAVAILABLE');
+      setConnectionNotice('Device network is offline. Firestore client is operating in offline mode.');
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const quotaExceeded = Boolean(
     firestoreError &&
@@ -231,9 +303,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (snap.exists()) {
           setStoreSettings({ ...DEFAULT_STORE_SETTINGS, ...snap.data() } as StoreSettings);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('Store settings listener warning:', error.message);
+        handleListenerNotice('store_settings', error);
       }
     );
     return () => unsub();
@@ -251,11 +324,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProducts(prods);
         setFirestoreError(null);
         setLoading(false);
+        markOnline();
       },
       (error) => {
-        console.warn('Firestore products listener notice:', error.message);
-        setFirestoreError(error.message || 'Error connecting to Firestore products collection');
         setLoading(false);
+        handleListenerNotice('products', error);
         // Retain last valid products in memory; never replace with demo/fallback items
       }
     );
@@ -274,9 +347,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (cats.length > 0) {
           setCategories(cats);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('Categories listener notice:', error.message);
+        handleListenerNotice('categories', error);
       }
     );
     return () => unsub();
@@ -294,15 +368,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (occs.length > 0) {
           setOccasions(occs);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('Occasions listener notice:', error.message);
+        handleListenerNotice('occasions', error);
       }
     );
     return () => unsub();
   }, []);
 
-  // Real-time listener: Gift Boxes
+  // Real-time listener: Gift Boxes (Single authoritative source: Firestore gift_boxes collection)
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, 'gift_boxes'),
@@ -311,12 +386,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         snap.forEach((docSnap) => {
           boxes.push({ id: docSnap.id, ...(docSnap.data() as Omit<GiftBox, 'id'>) });
         });
-        if (boxes.length > 0) {
-          setGiftBoxes(boxes);
+        setGiftBoxes(boxes);
+        markOnline();
+        try {
+          localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(boxes));
+        } catch {
+          // ignore
         }
       },
       (error) => {
-        console.warn('Gift boxes listener notice:', error.message);
+        handleListenerNotice('gift_boxes', error);
+        // Retain last known state from cache/memory; do NOT inject demo/fake items
       }
     );
     return () => unsub();
@@ -334,9 +414,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (revs.length > 0) {
           setReviews(revs);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('Reviews listener notice:', error.message);
+        handleListenerNotice('reviews', error);
       }
     );
     return () => unsub();
@@ -354,9 +435,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (blgs.length > 0) {
           setBlogs(blgs);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('Blogs listener notice:', error.message);
+        handleListenerNotice('blogs', error);
       }
     );
     return () => unsub();
@@ -375,9 +457,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           fqs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
           setFaqs(fqs);
         }
+        markOnline();
       },
       (error) => {
-        console.warn('FAQs listener notice:', error.message);
+        handleListenerNotice('faqs', error);
       }
     );
     return () => unsub();
@@ -397,9 +480,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
           ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setOrders(ords);
+          markOnline();
         },
         (error) => {
-          console.warn('Admin orders listener notice:', error.message);
+          handleListenerNotice('orders', error);
         }
       );
       return () => unsub();
@@ -416,9 +500,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
           ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setOrders(ords);
+          markOnline();
         },
         (error) => {
-          console.warn('User orders listener notice:', error.message);
+          handleListenerNotice('orders', error);
         }
       );
       return () => unsub();
@@ -457,16 +542,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         INITIAL_OCCASIONS.forEach((occ) => {
           const docRef = doc(collection(db, 'occasions'));
           batch.set(docRef, { ...occ, id: docRef.id });
-        });
-        await batch.commit();
-      }
-
-      const boxSnap = await getDocs(collection(db, 'gift_boxes'));
-      if (boxSnap.empty || forceReset) {
-        const batch = writeBatch(db);
-        INITIAL_GIFT_BOXES.forEach((b) => {
-          const docRef = doc(collection(db, 'gift_boxes'));
-          batch.set(docRef, { ...b, id: docRef.id });
         });
         await batch.commit();
       }
@@ -874,26 +949,66 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addGiftBox = async (box: Omit<GiftBox, 'id'>): Promise<string> => {
     try {
       const docRef = doc(collection(db, 'gift_boxes'));
-      await setDoc(docRef, { ...box, id: docRef.id });
+      const newBox: GiftBox = { ...box, id: docRef.id };
+      await setDoc(docRef, newBox);
+      setGiftBoxes((prev) => {
+        const updated = [newBox, ...prev.filter((b) => b.id !== docRef.id)];
+        try {
+          localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
       return docRef.id;
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'gift_boxes');
+      throw err;
     }
   };
 
-  const updateGiftBox = async (id: string, updates: Partial<GiftBox>) => {
+  const updateGiftBox = async (id: string, updates: Partial<GiftBox>): Promise<void> => {
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid Gift Box ID provided for update');
+    }
     try {
-      await updateDoc(doc(db, 'gift_boxes', id), updates);
+      const docRef = doc(db, 'gift_boxes', id);
+      await setDoc(docRef, updates, { merge: true });
+      setGiftBoxes((prev) => {
+        const updated = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
+        try {
+          localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `gift_boxes/${id}`);
+      throw err;
     }
   };
 
-  const deleteGiftBox = async (id: string) => {
+  const deleteGiftBox = async (id: string): Promise<void> => {
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid Gift Box ID provided for deletion');
+    }
     try {
-      await deleteDoc(doc(db, 'gift_boxes', id));
+      const docRef = doc(db, 'gift_boxes', id);
+      await deleteDoc(docRef);
+      // Wait for Firestore delete operation to complete successfully BEFORE removing from state
+      setGiftBoxes((prev) => {
+        const updated = prev.filter((b) => b.id !== id);
+        try {
+          localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `gift_boxes/${id}`);
+      throw err;
     }
   };
 
@@ -1121,6 +1236,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         firestoreError,
         quotaExceeded,
         firestoreUpgradeUrl,
+        firestoreConnectionStatus,
+        isTemporarilyUnavailable,
+        connectionNotice,
         cart,
         addToCart,
         addCustomBoxToCart,
