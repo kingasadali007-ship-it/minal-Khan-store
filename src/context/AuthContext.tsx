@@ -13,6 +13,7 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { UserProfile } from '../types';
+import { firestoreTracker } from '../utils/firestoreDebug';
 
 interface AuthContextType {
   user: User | null;
@@ -48,9 +49,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return localStorage.getItem('minal_admin_key_session') === 'true';
   });
 
+  const fetchingUidRef = React.useRef<string | null>(null);
+
   const fetchUserProfile = async (firebaseUser: User) => {
+    if (fetchingUidRef.current === firebaseUser.uid && userProfile?.id === firebaseUser.uid) {
+      return;
+    }
+    fetchingUidRef.current = firebaseUser.uid;
     try {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
+      firestoreTracker.logRead({
+        collection: 'users',
+        operation: 'getDoc',
+        caller: 'AuthContext:fetchUserProfile',
+        docCount: 1,
+      });
       const snap = await getDoc(userDocRef);
       if (snap.exists()) {
         setUserProfile(snap.data() as UserProfile);

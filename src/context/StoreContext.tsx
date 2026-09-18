@@ -10,9 +10,11 @@ import {
   writeBatch,
   query,
   where,
+  limit,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { handleFirestoreError, OperationType } from '../firebase/errorHandler';
+import { firestoreTracker } from '../utils/firestoreDebug';
 import {
   Product,
   Category,
@@ -154,6 +156,10 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
+// Global module-level tracker for products subscription lifecycle diagnostics
+let activeProductsUnsub: (() => void) | null = null;
+let productsSubscriptionCount = 0;
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userProfile, updateCustomerProfile, isAdmin, loading: authLoading } = useAuth();
 
@@ -228,13 +234,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (isQuota) {
       setFirestoreError(errMsg);
+      setFirestoreConnectionStatus('OFFLINE / TEMPORARILY UNAVAILABLE');
+      setConnectionNotice(
+        'Firestore daily read limit reached (resource-exhausted). Preserving active catalog in offline cache mode.'
+      );
     } else if (isUnavailable) {
       setFirestoreConnectionStatus('OFFLINE / TEMPORARILY UNAVAILABLE');
       setConnectionNotice(
-        'Firestore backend is currently unreachable. Operating in offline cache mode — active catalog data is preserved.'
+        'Firestore temporarily unavailable. Operating in offline cache mode with active catalog intact.'
       );
     } else {
-      console.warn(`Firestore ${colName} listener notice:`, errMsg);
+      console.warn(`Firestore ${colName} notice:`, errMsg);
     }
   };
 
@@ -295,28 +305,86 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [userProfile]);
 
-  // Real-time listener: Store Settings
+  // Real-time listener: Store Settings (1 single document)
   useEffect(() => {
+    let isMounted = true;
     const unsub = onSnapshot(
       doc(db, 'store_settings', 'main'),
       (snap) => {
+        if (!isMounted) return;
+        firestoreTracker.logRead({
+          collection: 'store_settings',
+          operation: 'onSnapshot:initial',
+          caller: 'StoreContext:storeSettingsListener',
+          docCount: 1,
+        });
         if (snap.exists()) {
           setStoreSettings({ ...DEFAULT_STORE_SETTINGS, ...snap.data() } as StoreSettings);
         }
         markOnline();
       },
       (error) => {
+        if (!isMounted) return;
         handleListenerNotice('store_settings', error);
       }
     );
-    return () => unsub();
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
 
-  // Real-time listener: Products (Single authoritative source: Firestore products collection)
+  // Real-time listener: Products (Single centralized source for entire app: storefront, admin, search)
+  // Utilizes persistentLocalCache to minimize read charges across reconnects/reloads.
   useEffect(() => {
+    let isMounted = true;
+    let isInitial = true;
+
+    // Clean up any previous active listener instance before subscribing
+    if (activeProductsUnsub) {
+      if (Boolean((import.meta as any).env?.DEV)) {
+        console.info(
+          '%c[Products Listener] RE-SUBSCRIBE products%c: Cleaning up previous active subscription instance',
+          'color: #d97706; font-weight: bold;',
+          'color: inherit;'
+        );
+      }
+      activeProductsUnsub();
+      activeProductsUnsub = null;
+    }
+
+    productsSubscriptionCount++;
+    const currentSubId = productsSubscriptionCount;
+    const isResubscription = currentSubId > 1;
+
+    if (Boolean((import.meta as any).env?.DEV)) {
+      if (isResubscription) {
+        console.info(
+          `%c[Products Listener] RE-SUBSCRIBE products (#${currentSubId})%c (Reason: StoreContext remount / React StrictMode)`,
+          'color: #d97706; font-weight: bold;',
+          'color: inherit;'
+        );
+      } else {
+        console.info(
+          `%c[Products Listener] SUBSCRIBE products (#${currentSubId})%c (Reason: Initial StoreContext mount)`,
+          'color: #10b981; font-weight: bold;',
+          'color: inherit;'
+        );
+      }
+    }
+
     const unsub = onSnapshot(
       collection(db, 'products'),
       (snap) => {
+        if (!isMounted) return;
+        firestoreTracker.logRead({
+          collection: 'products',
+          operation: isInitial ? 'onSnapshot:initial' : 'onSnapshot:update',
+          caller: `StoreContext:productsListener#${currentSubId}`,
+          docCount: snap.docChanges().length || snap.size,
+        });
+        isInitial = false;
+
         const prods: Product[] = [];
         snap.forEach((docSnap) => {
           prods.push({ id: docSnap.id, ...(docSnap.data() as Omit<Product, 'id'>) });
@@ -327,199 +395,256 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         markOnline();
       },
       (error) => {
+        if (!isMounted) return;
         setLoading(false);
         handleListenerNotice('products', error);
-        // Retain last valid products in memory; never replace with demo/fallback items
+        // Retain last valid products in memory; NEVER replace with fake/demo items
       }
     );
-    return () => unsub();
+
+    activeProductsUnsub = unsub;
+
+    return () => {
+      isMounted = false;
+      if (Boolean((import.meta as any).env?.DEV)) {
+        console.info(
+          `%c[Products Listener] UNSUBSCRIBE products (#${currentSubId})%c (Reason: StoreContext unmount cleanup)`,
+          'color: #ef4444; font-weight: bold;',
+          'color: inherit;'
+        );
+      }
+      if (activeProductsUnsub === unsub) {
+        activeProductsUnsub = null;
+      }
+      unsub();
+    };
   }, []);
 
-  // Real-time listener: Categories
+  // Controlled, one-time initial load for auxiliary collections (categories, occasions, gift_boxes, reviews, blogs, faqs).
+  // These collections are administrative and do not require 24/7 real-time WebSocket listening.
+  // When an admin creates/updates/deletes an item, the local state is updated immediately in-memory alongside the Firestore write.
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'categories'),
-      (snap) => {
-        const cats: Category[] = [];
-        snap.forEach((docSnap) => {
-          cats.push({ id: docSnap.id, ...(docSnap.data() as Omit<Category, 'id'>) });
+    let isMounted = true;
+
+    const loadAuxiliaryData = async () => {
+      // 1. Categories
+      try {
+        firestoreTracker.logRead({
+          collection: 'categories',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        if (cats.length > 0) {
+        const catSnap = await getDocs(collection(db, 'categories'));
+        if (isMounted && !catSnap.empty) {
+          const cats: Category[] = [];
+          catSnap.forEach((docSnap) => {
+            cats.push({ id: docSnap.id, ...(docSnap.data() as Omit<Category, 'id'>) });
+          });
           setCategories(cats);
         }
-        markOnline();
-      },
-      (error) => {
-        handleListenerNotice('categories', error);
+      } catch (err) {
+        if (isMounted) handleListenerNotice('categories', err);
       }
-    );
-    return () => unsub();
-  }, []);
 
-  // Real-time listener: Occasions
-  useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'occasions'),
-      (snap) => {
-        const occs: Occasion[] = [];
-        snap.forEach((docSnap) => {
-          occs.push({ id: docSnap.id, ...(docSnap.data() as Omit<Occasion, 'id'>) });
+      // 2. Occasions
+      try {
+        firestoreTracker.logRead({
+          collection: 'occasions',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        if (occs.length > 0) {
+        const occSnap = await getDocs(collection(db, 'occasions'));
+        if (isMounted && !occSnap.empty) {
+          const occs: Occasion[] = [];
+          occSnap.forEach((docSnap) => {
+            occs.push({ id: docSnap.id, ...(docSnap.data() as Omit<Occasion, 'id'>) });
+          });
           setOccasions(occs);
         }
-        markOnline();
-      },
-      (error) => {
-        handleListenerNotice('occasions', error);
+      } catch (err) {
+        if (isMounted) handleListenerNotice('occasions', err);
       }
-    );
-    return () => unsub();
-  }, []);
 
-  // Real-time listener: Gift Boxes (Single authoritative source: Firestore gift_boxes collection)
-  useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'gift_boxes'),
-      (snap) => {
-        const boxes: GiftBox[] = [];
-        snap.forEach((docSnap) => {
-          boxes.push({ id: docSnap.id, ...(docSnap.data() as Omit<GiftBox, 'id'>) });
+      // 3. Gift Boxes
+      try {
+        firestoreTracker.logRead({
+          collection: 'gift_boxes',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        setGiftBoxes(boxes);
-        markOnline();
-        try {
-          localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(boxes));
-        } catch {
-          // ignore
+        const boxSnap = await getDocs(collection(db, 'gift_boxes'));
+        if (isMounted && !boxSnap.empty) {
+          const boxes: GiftBox[] = [];
+          boxSnap.forEach((docSnap) => {
+            boxes.push({ id: docSnap.id, ...(docSnap.data() as Omit<GiftBox, 'id'>) });
+          });
+          setGiftBoxes(boxes);
+          try {
+            localStorage.setItem('minal_gift_boxes_cache', JSON.stringify(boxes));
+          } catch {
+            // ignore
+          }
         }
-      },
-      (error) => {
-        handleListenerNotice('gift_boxes', error);
-        // Retain last known state from cache/memory; do NOT inject demo/fake items
+      } catch (err) {
+        if (isMounted) handleListenerNotice('gift_boxes', err);
       }
-    );
-    return () => unsub();
-  }, []);
 
-  // Real-time listener: Customer Reviews
-  useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'reviews'),
-      (snap) => {
-        const revs: CustomerReview[] = [];
-        snap.forEach((docSnap) => {
-          revs.push({ id: docSnap.id, ...(docSnap.data() as Omit<CustomerReview, 'id'>) });
+      // 4. Reviews
+      try {
+        firestoreTracker.logRead({
+          collection: 'reviews',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        if (revs.length > 0) {
+        const revSnap = await getDocs(collection(db, 'reviews'));
+        if (isMounted && !revSnap.empty) {
+          const revs: CustomerReview[] = [];
+          revSnap.forEach((docSnap) => {
+            revs.push({ id: docSnap.id, ...(docSnap.data() as Omit<CustomerReview, 'id'>) });
+          });
           setReviews(revs);
         }
-        markOnline();
-      },
-      (error) => {
-        handleListenerNotice('reviews', error);
+      } catch (err) {
+        if (isMounted) handleListenerNotice('reviews', err);
       }
-    );
-    return () => unsub();
-  }, []);
 
-  // Real-time listener: Blog Posts
-  useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'blogs'),
-      (snap) => {
-        const blgs: BlogPost[] = [];
-        snap.forEach((docSnap) => {
-          blgs.push({ id: docSnap.id, ...(docSnap.data() as Omit<BlogPost, 'id'>) });
+      // 5. Blogs
+      try {
+        firestoreTracker.logRead({
+          collection: 'blogs',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        if (blgs.length > 0) {
+        const blogSnap = await getDocs(collection(db, 'blogs'));
+        if (isMounted && !blogSnap.empty) {
+          const blgs: BlogPost[] = [];
+          blogSnap.forEach((docSnap) => {
+            blgs.push({ id: docSnap.id, ...(docSnap.data() as Omit<BlogPost, 'id'>) });
+          });
           setBlogs(blgs);
         }
-        markOnline();
-      },
-      (error) => {
-        handleListenerNotice('blogs', error);
+      } catch (err) {
+        if (isMounted) handleListenerNotice('blogs', err);
       }
-    );
-    return () => unsub();
-  }, []);
 
-  // Real-time listener: FAQs
-  useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'faqs'),
-      (snap) => {
-        const fqs: FAQItem[] = [];
-        snap.forEach((docSnap) => {
-          fqs.push({ id: docSnap.id, ...(docSnap.data() as Omit<FAQItem, 'id'>) });
+      // 6. FAQs
+      try {
+        firestoreTracker.logRead({
+          collection: 'faqs',
+          operation: 'getDocs',
+          caller: 'StoreContext:auxiliaryInit',
         });
-        if (fqs.length > 0) {
+        const faqSnap = await getDocs(collection(db, 'faqs'));
+        if (isMounted && !faqSnap.empty) {
+          const fqs: FAQItem[] = [];
+          faqSnap.forEach((docSnap) => {
+            fqs.push({ id: docSnap.id, ...(docSnap.data() as Omit<FAQItem, 'id'>) });
+          });
           fqs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
           setFaqs(fqs);
         }
-        markOnline();
-      },
-      (error) => {
-        handleListenerNotice('faqs', error);
+      } catch (err) {
+        if (isMounted) handleListenerNotice('faqs', err);
       }
-    );
-    return () => unsub();
+    };
+
+    loadAuxiliaryData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Real-time listener: Orders (Admins see all; signed-in users see their own; guests see local)
+  // Controlled, bounded listener for Orders:
+  // - Unauthenticated visitors / regular guests NEVER query Firestore for orders (zero reads; local storage only).
+  // - Signed-in customers query only their own orders with limit(25).
+  // - Admins query recent orders with limit(100).
+  const ordersSubActiveRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
 
-    if (isAdmin) {
-      const unsub = onSnapshot(
-        collection(db, 'orders'),
-        (snap) => {
-          const ords: Order[] = [];
-          snap.forEach((docSnap) => {
-            ords.push({ id: docSnap.id, ...(docSnap.data() as Omit<Order, 'id'>) });
-          });
-          ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setOrders(ords);
-          markOnline();
-        },
-        (error) => {
-          handleListenerNotice('orders', error);
-        }
-      );
-      return () => unsub();
+    const subKey = isAdmin ? 'admin' : user?.uid ? `user_${user.uid}` : 'guest';
+    if (ordersSubActiveRef.current === subKey) {
+      return;
     }
 
-    if (user?.uid) {
-      const userOrdersQuery = query(collection(db, 'orders'), where('userId', '==', user.uid));
-      const unsub = onSnapshot(
-        userOrdersQuery,
-        (snap) => {
-          const ords: Order[] = [];
-          snap.forEach((docSnap) => {
-            ords.push({ id: docSnap.id, ...(docSnap.data() as Omit<Order, 'id'>) });
-          });
-          ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setOrders(ords);
-          markOnline();
-        },
-        (error) => {
-          handleListenerNotice('orders', error);
+    if (!isAdmin && !user?.uid) {
+      ordersSubActiveRef.current = 'guest';
+      try {
+        const guestSaved = localStorage.getItem('minal_guest_orders');
+        if (guestSaved) {
+          setOrders(JSON.parse(guestSaved));
+        } else {
+          setOrders([]);
         }
-      );
-      return () => unsub();
-    }
-
-    // Guest fallback from localStorage
-    try {
-      const guestSaved = localStorage.getItem('minal_guest_orders');
-      if (guestSaved) {
-        setOrders(JSON.parse(guestSaved));
-      } else {
+      } catch {
         setOrders([]);
       }
-    } catch {
-      setOrders([]);
+      return;
     }
+
+    ordersSubActiveRef.current = subKey;
+    let isMounted = true;
+    let unsub: (() => void) | null = null;
+
+    if (isAdmin) {
+      const q = query(collection(db, 'orders'), limit(100));
+      unsub = onSnapshot(
+        q,
+        (snap) => {
+          if (!isMounted) return;
+          firestoreTracker.logRead({
+            collection: 'orders',
+            operation: 'onSnapshot:initial',
+            caller: 'StoreContext:adminOrders',
+            docCount: snap.size,
+          });
+          const ords: Order[] = [];
+          snap.forEach((docSnap) => {
+            ords.push({ id: docSnap.id, ...(docSnap.data() as Omit<Order, 'id'>) });
+          });
+          ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(ords);
+          markOnline();
+        },
+        (error) => {
+          if (!isMounted) return;
+          handleListenerNotice('orders', error);
+        }
+      );
+    } else if (user?.uid) {
+      const userOrdersQuery = query(collection(db, 'orders'), where('userId', '==', user.uid), limit(25));
+      unsub = onSnapshot(
+        userOrdersQuery,
+        (snap) => {
+          if (!isMounted) return;
+          firestoreTracker.logRead({
+            collection: 'orders',
+            operation: 'onSnapshot:initial',
+            caller: 'StoreContext:userOrders',
+            docCount: snap.size,
+          });
+          const ords: Order[] = [];
+          snap.forEach((docSnap) => {
+            ords.push({ id: docSnap.id, ...(docSnap.data() as Omit<Order, 'id'>) });
+          });
+          ords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(ords);
+          markOnline();
+        },
+        (error) => {
+          if (!isMounted) return;
+          handleListenerNotice('orders', error);
+        }
+      );
+    }
+
+    return () => {
+      isMounted = false;
+      if (unsub) unsub();
+      ordersSubActiveRef.current = null;
+    };
   }, [authLoading, isAdmin, user?.uid]);
 
   // Manual administrative seed function (DO NOT run automatically on render)
@@ -811,12 +936,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const guestSaved = JSON.parse(localStorage.getItem('minal_guest_orders') || '[]');
         localStorage.setItem('minal_guest_orders', JSON.stringify([fullOrder, ...guestSaved]));
-        if (!user && !isAdmin) {
-          setOrders((prev) => [fullOrder, ...prev]);
-        }
       } catch {
         // ignore
       }
+      setOrders((prev) => [fullOrder, ...prev.filter((o) => o.id !== fullOrder.id)]);
 
       return orderNumber;
     } catch (err) {
@@ -897,52 +1020,66 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addCategory = async (cat: Omit<Category, 'id'>): Promise<string> => {
     try {
       const docRef = doc(collection(db, 'categories'));
-      await setDoc(docRef, { ...cat, id: docRef.id });
+      const newCat: Category = { ...cat, id: docRef.id };
+      await setDoc(docRef, newCat);
+      setCategories((prev) => [...prev.filter((c) => c.id !== docRef.id), newCat]);
       return docRef.id;
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'categories');
+      throw err;
     }
   };
 
   const updateCategory = async (id: string, updates: Partial<Category>) => {
     try {
       await updateDoc(doc(db, 'categories', id), updates);
+      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `categories/${id}`);
+      throw err;
     }
   };
 
   const deleteCategory = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'categories', id));
+      setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+      throw err;
     }
   };
 
   const addOccasion = async (occ: Omit<Occasion, 'id'>): Promise<string> => {
     try {
       const docRef = doc(collection(db, 'occasions'));
-      await setDoc(docRef, { ...occ, id: docRef.id });
+      const newOcc: Occasion = { ...occ, id: docRef.id };
+      await setDoc(docRef, newOcc);
+      setOccasions((prev) => [...prev.filter((o) => o.id !== docRef.id), newOcc]);
       return docRef.id;
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'occasions');
+      throw err;
     }
   };
 
   const updateOccasion = async (id: string, updates: Partial<Occasion>) => {
     try {
       await updateDoc(doc(db, 'occasions', id), updates);
+      setOccasions((prev) => prev.map((o) => (o.id === id ? { ...o, ...updates } : o)));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `occasions/${id}`);
+      throw err;
     }
   };
 
   const deleteOccasion = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'occasions', id));
+      setOccasions((prev) => prev.filter((o) => o.id !== id));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `occasions/${id}`);
+      throw err;
     }
   };
 
@@ -1057,6 +1194,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (adminNotes !== undefined) updates.adminNotes = adminNotes;
 
       await updateDoc(doc(db, 'orders', orderId), updates);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o)));
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
     }
@@ -1132,19 +1270,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isFeatured: false,
     };
     await setDoc(docRef, newReview);
+    setReviews((prev) => [newReview, ...prev.filter((r) => r.id !== docRef.id)]);
     return docRef.id;
   };
 
   const updateReviewStatus = async (id: string, isApproved: boolean) => {
     await updateDoc(doc(db, 'reviews', id), { isApproved });
+    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, isApproved } : r)));
   };
 
   const toggleFeatureReview = async (id: string, isFeatured: boolean) => {
     await updateDoc(doc(db, 'reviews', id), { isFeatured });
+    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, isFeatured } : r)));
   };
 
   const deleteCustomerReview = async (id: string) => {
     await deleteDoc(doc(db, 'reviews', id));
+    setReviews((prev) => prev.filter((r) => r.id !== id));
   };
 
   // Blog Posts
@@ -1156,15 +1298,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       date: new Date().toISOString().split('T')[0],
     };
     await setDoc(docRef, newPost);
+    setBlogs((prev) => [newPost, ...prev.filter((b) => b.id !== docRef.id)]);
     return docRef.id;
   };
 
   const updateBlogPost = async (id: string, updates: Partial<BlogPost>) => {
     await updateDoc(doc(db, 'blogs', id), updates);
+    setBlogs((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
   };
 
   const deleteBlogPost = async (id: string) => {
     await deleteDoc(doc(db, 'blogs', id));
+    setBlogs((prev) => prev.filter((b) => b.id !== id));
   };
 
   // FAQs
@@ -1176,15 +1321,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       order: faq.order ?? (faqs.length + 1),
     };
     await setDoc(docRef, newFaq);
+    setFaqs((prev) => [...prev.filter((f) => f.id !== docRef.id), newFaq]);
     return docRef.id;
   };
 
   const updateFAQItem = async (id: string, updates: Partial<FAQItem>) => {
     await updateDoc(doc(db, 'faqs', id), updates);
+    setFaqs((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   };
 
   const deleteFAQItem = async (id: string) => {
     await deleteDoc(doc(db, 'faqs', id));
+    setFaqs((prev) => prev.filter((f) => f.id !== id));
   };
 
   // Convenience Admin aliases
